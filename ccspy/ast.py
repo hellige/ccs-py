@@ -1,3 +1,7 @@
+from collections import namedtuple
+from enum import Enum
+
+
 class Origin:
     def __init__(self, filename, line_number):
         self.filename = filename
@@ -69,7 +73,7 @@ class Constraint:
 
 
 class Nested:
-    # selector is a "selector branch" type
+    # selector is an expr type, and/or or a literal
     def __init__(self, selector = None):
         self.selector = selector
         self.rules = []
@@ -82,7 +86,7 @@ class Nested:
 
     def add_to(self, build_context):
         if self.selector:
-            build_context = self.selector.traverse(build_context)
+            build_context = build_context.traverse(self.selector)
         for rule in self.rules:
             rule.add_to(build_context)
 
@@ -96,71 +100,30 @@ class Nested:
         return f"{self.selector} : {{ {'; '.join(map(str, self.rules))} }}"
 
 
-# "selector branch" types
+class Op(Enum):
+    AND = 'AND'
+    OR = 'OR'
 
 
-class Conjunction:
-    def __init__(self, leaf):
-        self.leaf = leaf
-
-    def __str__(self):
-        return f"(AND {self.leaf})"
-
-    def traverse(self, build_context):
-        return build_context.conjunction(build_context.traverse(self.leaf))
+class Expr:
+    def __init__(self, op, children):
+        self.is_literal = False
+        self.op = op
+        self.children = children
 
 
-class Disjunction:
-    def __init__(self, leaf):
-        self.leaf = leaf
+def conj(terms):
+    return Expr(Op.AND, terms)
 
-    def __str__(self):
-        return f"(OR {self.leaf})"
 
-    def traverse(self, build_context):
-        return build_context.disjunction(build_context.traverse(self.leaf))
-
-# "selector leaf" types
+def disj(terms):
+    return Expr(Op.OR, terms)
 
 
 class Step:
     def __init__(self, key):
+        self.is_literal = True
         self.key = key
 
     def __str__(self):
         return f"(STEP {self.key})"
-
-    def traverse(self, dag):
-        return dag.find_or_create_node(self.key)
-
-    def conjunction(self, right):
-        return Wrap(Conjunction(self), right)
-
-    def disjunction(self, right):
-        return Wrap(Disjunction(self), right)
-
-
-class Wrap:
-    def __init__(self, branch, leaf):
-        self.branches = [branch]
-        self.leaf = leaf
-
-    def __str__(self):
-        return f"(WRAP [{' '.join(map(str, self.branches))}] {self.leaf})"
-
-    def traverse(self, dag):
-        tmp = dag.build_context()
-        for branch in self.branches:
-            tmp = branch.traverse(tmp)
-        return tmp.traverse(self.leaf)
-
-    def _push(self, branch, leaf):
-        self.branches.append(branch)
-        self.leaf = leaf
-        return self
-
-    def conjunction(self, right):
-        return self._push(Conjunction(self.leaf), right)
-
-    def disjunction(self, right):
-        return self._push(Disjunction(self.leaf), right)

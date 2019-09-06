@@ -423,37 +423,43 @@ class ParserImpl:
         return ast.PropDef(name, propval, origin, override)
 
     def parse_selector(self):
-        leaf = self.parse_sum()
-        if self.advance_if(Token.GT):
-            raise ParseError(self.cur.location, "No longer supported") # TODO
-        return ast.Conjunction(leaf)
+        return self.parse_sum()
+        # leaf = self.parse_sum()
+        # if self.advance_if(Token.GT):
+        #     raise ParseError(self.cur.location, "No longer supported") # TODO
+        # return ast.Conjunction(leaf)
 
     def parse_sum(self):
-        left = self.parse_product()
+        terms = [self.parse_product()]
         while self.advance_if(Token.COMMA):
-            left = left.disjunction(self.parse_product())
-        return left
+            terms.append(self.parse_product())
+        if len(terms) == 1:
+            return terms[0]
+        return ast.disj(terms)
 
     def could_start_step(self, token):
         return token.type in [Token.IDENT, Token.STRING, Token.LPAREN]
 
     def parse_product(self):
-        left = self.parse_term()
-        # term starts with ident of '(', which is enough to disambiguate...
+        terms = [self.parse_term()]
+        # term starts with ident or '(', which is enough to disambiguate...
         while self.could_start_step(self.cur):
-            left = left.conjunction(self.parse_term())
-        return left
+            terms.append(self.parse_term())
+        if len(terms) == 1:
+            return terms[0]
+        return ast.conj(terms)
 
     def parse_term(self):
-        left = self.parse_step()
-        while self.cur.type is Token.GT:
-            # here we have to distinguish another step from a trailing '>'. again,
-            # peeking for ident or '(' does the trick.
-            if not self.could_start_step(self.lex.peek()):
-                 return left
-            self.advance()
-            left = left.descendant(self.parse_step())
-        return left
+        return self.parse_step()
+    #     left = self.parse_step()
+    #     while self.cur.type is Token.GT:
+    #         # here we have to distinguish another step from a trailing '>'. again,
+    #         # peeking for ident or '(' does the trick.
+    #         if not self.could_start_step(self.lex.peek()):
+    #              return left
+    #         self.advance()
+    #         left = left.descendant(self.parse_step())
+    #     return left
 
     def parse_step(self):
         if self.advance_if(Token.LPAREN):
