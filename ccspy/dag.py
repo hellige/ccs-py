@@ -2,7 +2,7 @@ from functools import total_ordering
 
 @total_ordering
 class Key:
-    def __init__(self, name, value):
+    def __init__(self, name, value=None):
         self.name = name
         self.value = value
         self.specificity = None # TODO

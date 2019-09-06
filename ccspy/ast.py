@@ -97,7 +97,7 @@ class Nested:
         return True
 
     def __str__(self):
-        return f"{self.selector} : {{ {'; '.join(map(str, self.rules))} }}"
+        return f"{self.selector} {{ {'; '.join(map(str, self.rules))} }}"
 
 
 class Op(Enum):
@@ -110,6 +110,9 @@ class Expr:
         self.is_literal = False
         self.op = op
         self.children = children
+
+    def __str__(self):
+        return f"({self.op.name} {' '.join(map(str, self.children))})"
 
 
 def conj(terms):
@@ -126,4 +129,4 @@ class Step:
         self.key = key
 
     def __str__(self):
-        return f"(STEP {self.key})"
+        return f"{self.key}"

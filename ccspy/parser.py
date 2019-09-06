@@ -318,10 +318,10 @@ class ParserImpl:
         self.lex = Lexer(stream)
         self.cur = None
         self.last = None
+        self.advance()
 
     def parse_ruleset(self):
         rules = ast.Nested()
-        self.advance()
         if self.advance_if(Token.CONTEXT):
             rules.set_selector(self.parse_context())
         while self.cur.type != Token.EOS:
@@ -508,3 +508,6 @@ class Parser:
 
     def parse(self, stream, filename):
         return ParserImpl(filename, stream).parse_ruleset()
+
+    def parse_selector(self, stream, filename="<none>"):
+        return ParserImpl(filename, stream).parse_selector()
