@@ -7,8 +7,8 @@ class Origin:
         self.filename = filename
         self.line_number = line_number
 
-    def __str__(self):
-        return f"{self.filename}: {self.line_number}"
+    def __repr__(self):
+        return f"{self.filename}:{self.line_number}"
 
 
 class Import:
