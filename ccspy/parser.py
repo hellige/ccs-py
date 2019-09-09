@@ -470,10 +470,10 @@ class ParserImpl:
 
     def parse_single_step(self):
         name = self.parse_ident("selector name")
-        value = None
+        values = set()
         if self.advance_if(Token.DOT):
-            value = self.parse_ident("selector value")
-        return dag.Key(name, value)
+            values.add(self.parse_ident("selector value"))
+        return dag.Key(name, values)
 
     def parse_ident(self, what):
         if self.advance_if(Token.IDENT):
