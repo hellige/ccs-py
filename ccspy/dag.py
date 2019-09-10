@@ -10,7 +10,7 @@ class Key:
     # TODO java code notices if key/val are actually not idents and quotes them
     def __str__(self):
         if len(self.values) > 1:
-            return f"{self.name}.{{{', '.join(self.values)}}}"
+            return f"{self.name}.{{{', '.join(sorted(self.values))}}}"
         elif len(self.values) == 1:
             return f"{self.name}.{next(iter(self.values))}"
         return self.name
