@@ -417,7 +417,7 @@ class ParserImpl:
                 self.cur.location,
                 f"{self.cur.type} cannot occur here. Expected property value "
                 + "(number, identifier, string, or boolean)")
-        propval = self.cur.value # TODO not complete...
+        propval = self.cur.value if self.cur.value else self.cur.string_value.str() # TODO not complete...
 
         self.advance()
         return ast.PropDef(name, propval, origin, override)
