@@ -1,3 +1,6 @@
+from ccspy.dag import Specificity
+
+
 class Clause:
     def __init__(self, lits):
         self.literals = frozenset(lits)
@@ -13,6 +16,9 @@ class Clause:
 
     def union(self, other):
         return Clause(self.literals.union(other.literals))
+
+    def specificity(self):
+        return sum((l.specificity for l in self.literals), Specificity(0, 0, 0))
 
     def __str__(self):
         return " ".join(map(str, sorted(self.literals)))

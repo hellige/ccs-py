@@ -1,11 +1,25 @@
+from collections import namedtuple
 from functools import total_ordering
+
+
+class Specificity(namedtuple('Specificity', ['positive', 'negative', 'wildcard'])):
+    __slots__ = ()
+
+    def __add__(self, other):
+        return Specificity(self.positive + other.positive,
+            self.negative + other.negative, self.wildcard + other.wildcard)
+
+
+POS_LIT_SPEC = Specificity(1, 0, 0)
+WILDCARD_SPEC = Specificity(0, 0, 1)
+
 
 @total_ordering
 class Key:
     def __init__(self, name, values=set()):
         self.name = name
         self.values = frozenset(values)
-        self.specificity = None # TODO
+        self.specificity = POS_LIT_SPEC if len(values) else WILDCARD_SPEC
 
     # TODO java code notices if key/val are actually not idents and quotes them
     def __str__(self):
