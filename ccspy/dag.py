@@ -2,16 +2,18 @@ from collections import namedtuple
 from functools import total_ordering
 
 
-class Specificity(namedtuple('Specificity', ['positive', 'negative', 'wildcard'])):
+class Specificity(namedtuple('Specificity',
+        ['override', 'positive', 'negative', 'wildcard'])):
     __slots__ = ()
 
     def __add__(self, other):
-        return Specificity(self.positive + other.positive,
+        return Specificity(
+            self.override + other.override, self.positive + other.positive,
             self.negative + other.negative, self.wildcard + other.wildcard)
 
 
-POS_LIT_SPEC = Specificity(1, 0, 0)
-WILDCARD_SPEC = Specificity(0, 0, 1)
+POS_LIT_SPEC = Specificity(0, 1, 0, 0)
+WILDCARD_SPEC = Specificity(0, 0, 0, 1)
 
 
 @total_ordering

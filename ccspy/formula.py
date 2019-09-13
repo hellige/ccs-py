@@ -18,7 +18,8 @@ class Clause:
         return Clause(self.literals.union(other.literals))
 
     def specificity(self):
-        return sum((l.specificity for l in self.literals), Specificity(0, 0, 0))
+        return sum((l.specificity for l in self.literals),
+            Specificity(0, 0, 0, 0))
 
     def __str__(self):
         return " ".join(map(str, sorted(self.literals)))
