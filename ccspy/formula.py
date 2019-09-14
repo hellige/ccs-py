@@ -45,6 +45,7 @@ class Clause:
         return '<{}>'.format(''.join(map(str, self.literals)))
 
 
+# TODO clean up usages of shared so that it's a constructor arg, make Formula immutable
 class Formula:
     def __init__(self, clauses):
         self.clauses = frozenset(clauses)
@@ -81,3 +82,20 @@ class Formula:
 
     def __repr__(self):
         return '({})'.format(''.join(self.clauses))
+
+
+def subsumes(c: Clause, d: Clause) -> bool:
+    return c.literals.issubset(d.literals)
+
+
+def normalize(formula: Formula) -> Formula:
+    minimized = set()
+    for c in formula.clauses:
+        minimized = {s for s in minimized if not subsumes(c, s)}
+        if not any(subsumes(s, c) for s in minimized):
+            minimized.add(c)   
+    # note *strict* subset check here...
+    shared = {s for s in formula.shared if any(s.elements() < c.elements() for c in minimized)}
+    result = Formula(minimized)
+    result.shared = frozenset(shared)
+    return result
