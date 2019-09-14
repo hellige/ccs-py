@@ -93,7 +93,7 @@ def normalize(formula: Formula) -> Formula:
     for c in formula.clauses:
         minimized = {s for s in minimized if not subsumes(c, s)}
         if not any(subsumes(s, c) for s in minimized):
-            minimized.add(c)   
+            minimized.add(c)
     # note *strict* subset check here...
     shared = {s for s in formula.shared if any(s.elements() < c.elements() for c in minimized)}
     result = Formula(minimized)

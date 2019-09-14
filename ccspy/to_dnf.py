@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 from ccspy.ast import Expr, Op, Step
-from ccspy.dag import Key 
+from ccspy.dag import Key
 from ccspy.formula import Clause, Formula, normalize
 
 
@@ -11,7 +11,7 @@ def flatten(expr: Expr) -> Expr:
 
     lit_children = defaultdict(set)
     new_children = []
-    
+
     def add_child(e):
         if e.is_literal and expr.op == Op.OR:
             # in this case, we can group matching literals by key to avoid unnecessary dnf expansion.
@@ -26,14 +26,14 @@ def flatten(expr: Expr) -> Expr:
             lit_children[e.key.name].update(e.key.values)
         else:
             new_children.append(e)
-    
+
     for e in map(flatten, expr.children):
         if not e.is_literal and e.op == expr.op:
             for c in e.children:
                 add_child(c)
         else:
             add_child(e)
-            
+
     for name in lit_children:
         new_children.append(Step(Key(name, lit_children[name])))
     return Expr(expr.op, new_children)
@@ -48,16 +48,16 @@ def to_dnf(expr: Expr, limit: int = 100) -> Formula:
     elif expr.op == Op.AND:
         return expand(limit, *map(lambda e: to_dnf(e, limit), expr.children))
 
-                                        
+
 def merge(forms) -> Formula:
     res = Formula(frozenset().union(*(f.elements() for f in forms)))
     res.shared = frozenset().union(*(f.shared for f in forms))
     return normalize(res)
 
-                                        
+
 def expand(limit: int, *forms):
     # first, build the subclause which is guaranteed to be common
-    # to all clauses produced in this expansion. keep count of 
+    # to all clauses produced in this expansion. keep count of
     # the non-trivial forms and the size of the result as we go...
     nontrivial = 0
     common = Clause([])
@@ -68,10 +68,10 @@ def expand(limit: int, *forms):
             common = common.union(f.first())
         else:
             nontrivial += 1
-            
+
     if result_size > limit:
         raise ValueError("Expanded form would have {} clauses, which is more than the limit of {}. Consider increasing the limit or stratifying this rule.".format(result_size, limit))
-            
+
     # next, perform the expansion...
     def exprec(forms) -> Formula:
         if len(forms) == 0:
@@ -93,4 +93,4 @@ def expand(limit: int, *forms):
             if len(f) > 1:
                 all_shared.update(c for c in f.elements() if len(c) > 1)
     res.shared = res.shared | all_shared
-    return normalize(res)    
+    return normalize(res)
