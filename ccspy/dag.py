@@ -17,6 +17,8 @@ POS_LIT_SPEC = Specificity(0, 1, 0, 0)
 WILDCARD_SPEC = Specificity(0, 0, 0, 1)
 
 
+# TODO this class really no longer makes sense in this module, it's not
+# even directly present in the dag any longer...
 @total_ordering
 class Key:
     def __init__(self, name, values=set()):
