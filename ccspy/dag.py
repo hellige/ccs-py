@@ -29,7 +29,8 @@ class Key:
     # TODO java code notices if key/val are actually not idents and quotes them
     def __str__(self):
         if len(self.values) > 1:
-            return f"{self.name}.{{{', '.join(sorted(self.values))}}}"
+            val_strs = (f"{self.name}.{val}" for val in sorted(self.values))
+            return f"({', '.join(val_strs)})"
         elif len(self.values) == 1:
             return f"{self.name}.{next(iter(self.values))}"
         return self.name
@@ -39,7 +40,8 @@ class Key:
         return self.name == other.name and self.values == other.values
 
     def __lt__(self, other):
-        return (self.name, self.values) < (other.name, other.values)
+        return ((self.name, sorted(self.values))
+            < (other.name, sorted(other.values)))
 
     def __hash__(self):
         return hash((self.name, self.values))
