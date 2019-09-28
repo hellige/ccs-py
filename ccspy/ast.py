@@ -2,6 +2,9 @@ from collections import namedtuple
 from enum import Enum
 
 
+# TODO seems like a decent tutorial place to start:
+#   https://realpython.com/python-type-checking/
+
 class Origin:
     def __init__(self, filename, line_number):
         self.filename = filename
