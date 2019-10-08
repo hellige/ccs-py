@@ -33,32 +33,41 @@ class MaxAccumulator:
         return repr(pyrsistent.thaw(self.values))
 
 class Context:
-    def __init__(self, dag, prop_accumulator=MaxAccumulator, tallies=m(), props=m()):
+    def __init__(self, dag, prop_accumulator=MaxAccumulator, tallies=m(), or_specificities=m(), props=m(), poisoned=None):
         self.dag = dag
         self.tallies = tallies
+        self.or_specificities = or_specificities
         self.prop_accumulator = prop_accumulator
         self.props = props  # TODO add all root-level props from dag!
+        self.poisoned = poisoned
 
     def augment(self, key, value=None):
         keys = deque([Key(key, {value})])
         tallies = self.tallies
+        or_specificities = self.or_specificities
+        poisoned = self.poisoned
         props = self.props
 
-        def activate_and(n, propagated_specificity):
+        def accum_tally(n):
             nonlocal tallies
             count = tallies.get(n, n.tally_count)
             if count > 0:
                 count -= 1
                 tallies = tallies.set(n, count)
                 if count == 0:
-                    return n.specificity
+                    return True
+            return False
+
+        def activate_and(n, propagated_specificity):
+            if accum_tally(n):
+                return n.specificity
             return None
 
         def activate_or(n, propagated_specificity):
-            nonlocal tallies
-            prev_spec = tallies.get(n, Specificity(0, 0, 0, 0))
+            nonlocal or_specificities
+            prev_spec = or_specificities.get(n, Specificity(0, 0, 0, 0))
             if propagated_specificity > prev_spec:
-                tallies = tallies.set(n, propagated_specificity)
+                or_specificities = or_specificities.set(n, propagated_specificity)
                 return propagated_specificity
             return None
 
@@ -77,6 +86,20 @@ class Context:
                 for n in n.children:
                     activate(n, activation_specificity)
 
+        def poison(n):
+            nonlocal poisoned
+            fully_poisoned = False
+            if isinstance(n, AndNode):
+                if n not in poisoned:
+                    fully_poisoned = True
+            else:
+                fully_poisoned = accum_tally(n)
+            if fully_poisoned:
+                poisoned = poisoned.add(n)
+                for n in n.children:
+                    poison(n)
+
+
         def match_step(key, value):
             if key in self.dag.children:
                 matcher = self.dag.children[key]
@@ -86,10 +109,21 @@ class Context:
                     for node in matcher.positive_values[value]:
                         activate(node)
                 # TODO negative matches here too
+                if poisoned is not None:
+                    for v2, nodes in matcher.positive_values.items():
+                        # TODO here, there's a question... if value is None, do
+                        # we insist that no value ever be asserted for key and
+                        # poison everything? or do we remain agnostic, with the
+                        # idea that key.value is still a monotonic refinement of
+                        # just key? for now we assume the former.
+                        if value != v2:
+                            for node in nodes:
+                                poison(node)
+                        # TODO and of course dually negative matches too
 
         while keys:
             key = keys.popleft()
             assert(len(key.values) < 2)
             match_step(key.name, next(iter(key.values), None))
 
-        return Context(self.dag, self.prop_accumulator, tallies, props)
+        return Context(self.dag, self.prop_accumulator, tallies, or_specificities, props, poisoned)

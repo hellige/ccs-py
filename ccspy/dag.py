@@ -79,6 +79,10 @@ class Node:
         self.children = []
         self.props = []
         self.constraints = []
+        self.tally_count = 0 # used for poisoning in case of OrNode
+
+    def add_link(self):
+        self.tally_count += 1
 
     def accumulate_stats(self, stats, visited):
         if self in visited: return
@@ -99,20 +103,15 @@ class AndNode(Node):
     def __init__(self, specificity):
         super().__init__()
         self.specificity = specificity
-        self.tally_count = 0
-
-    def add_link(self):
-        self.tally_count += 1
 
     def accumulate_subclass_stats(self, stats):
+        # only include tally stats for and nodes, since the tallies
+        # for or nodes are only used for poisoning...
         stats.tally_max = max(stats.tally_max, self.tally_count)
         stats.tally_total += self.tally_count
 
 
 class OrNode(Node):
-    def add_link(self):
-        pass
-
     def accumulate_subclass_stats(self, stats):
         pass
 
