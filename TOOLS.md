@@ -1,0 +1,6 @@
+ - pytest: tests
+ - tox: build/test
+ - twine: publish to pypi
+ - venv/pip: instead of conda
+ - pipenv: no good for libraries?
+ - sphinx: docs
