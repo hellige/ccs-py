@@ -90,7 +90,19 @@ class Context:
             nonlocal poisoned
             fully_poisoned = False
             if isinstance(n, AndNode):
-                if n not in poisoned:
+                # a bit of care is required here, since we build tally-one
+                # conjunction nodes for literals, even when they represent
+                # disjunctions of multiple values.
+                # TODO this is starting to feel a bit too cute and tricky,
+                # might be time to build those in a more obvious way and use
+                # a more explicit technique to ensure uniqueness of literal
+                # values in context.
+                # but anyway, because of that, and because we always activate
+                # prior to poisoning, we can avoid incorrectly poisoning a
+                # literal node just by checking to see whether it's already
+                # been fully activated. that's the only scenario in which this
+                # can happen, so it's sufficient to detect it.
+                if tallies.get(n) != 0 and n not in poisoned:
                     fully_poisoned = True
             else:
                 fully_poisoned = accum_tally(n)
