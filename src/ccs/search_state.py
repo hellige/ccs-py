@@ -2,7 +2,7 @@ from collections import deque
 from pyrsistent import m, s
 import pyrsistent
 
-from ccspy.dag import AndNode, Key, Specificity
+from ccs.dag import AndNode, Key, Specificity
 
 # TODO really this should probably be a map from value to specificity, where only the highest specificity
 # for a given specific value/origin is retained

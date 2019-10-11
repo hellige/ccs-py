@@ -1,4 +1,4 @@
-from ccspy.dag import Specificity
+from ccs.dag import Specificity
 
 
 class Clause:

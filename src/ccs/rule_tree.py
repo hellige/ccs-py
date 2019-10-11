@@ -1,10 +1,10 @@
 from collections import defaultdict
 from itertools import chain
 
-from ccspy.ast import Expr, Op, Step
-from ccspy.dag import Key
-from ccspy.formula import Clause, Formula, normalize
-from ccspy.property import Property
+from ccs.ast import Expr, Op, Step
+from ccs.dag import Key
+from ccs.formula import Clause, Formula, normalize
+from ccs.property import Property
 
 
 class RuleTreeNode:

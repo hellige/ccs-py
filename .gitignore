@@ -1,5 +1,14 @@
 *.pyc
+
+/build
 /dist
-/*.egg-info
+/.eggs
 /.ipynb_checkpoints
+/.pytest_cache
 /.vscode
+
+/src/ccs_py.egg-info
+/src/ccs/_version.py
+
+# venv stuff
+/.env

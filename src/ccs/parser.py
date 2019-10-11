@@ -1,8 +1,8 @@
 import re
 
-from ccspy import ast
-from ccspy import dag
-from ccspy import stringval
+from ccs import ast
+from ccs import dag
+from ccs import stringval
 
 
 class ParseError(Exception):
@@ -298,6 +298,7 @@ class Lexer:
     def hex_literal(self, where):
         token = Token(Token.INT, where)
         n = self.hex_char(self.stream.peek())
+        token.intValue = 0
         while n != -1:
             token.intValue = token.intValue * 16 + n
             token.append(self.stream.get())
