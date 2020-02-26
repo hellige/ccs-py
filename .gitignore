@@ -5,6 +5,7 @@
 /.eggs
 /.ipynb_checkpoints
 /.pytest_cache
+/.tox
 /.vscode
 
 /src/ccs_py.egg-info
