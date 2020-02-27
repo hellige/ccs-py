@@ -17,11 +17,11 @@ class Location:
         self.column = column
 
     def __str__(self):
-        return f'<{self.line}:{self.column}>'
+        return f"<{self.line}:{self.column}>"
 
 
 class Token:
-    EOS = 'end-of-input'
+    EOS = "end-of-input"
     LPAREN = "'('"
     RPAREN = "')'"
     LBRACE = "'{'"
@@ -36,13 +36,13 @@ class Token:
     CONTEXT = "'@context'"
     IMPORT = "'@import'"
     OVERRIDE = "'@override'"
-    INT = 'integer'
-    DOUBLE = 'double'
-    IDENT = 'identifier'
-    NUMID = 'numeric/identifier'
-    STRING = 'string literal'
+    INT = "integer"
+    DOUBLE = "double"
+    IDENT = "identifier"
+    NUMID = "numeric/identifier"
+    STRING = "string literal"
 
-    def __init__(self, typ, location, initial_val=''):
+    def __init__(self, typ, location, initial_val=""):
         self.type = typ
         self.location = location
         self.value = initial_val
@@ -63,7 +63,7 @@ class Token:
 
 
 class Buf:
-    EOF = ''
+    EOF = ""
 
     def __init__(self, stream):
         self.stream = stream
@@ -75,7 +75,7 @@ class Buf:
         c = self.stream.read(1)
         # even though our EOF is already '', seems clearer to be explicit about
         # this here...
-        return self.EOF if c == '' else c
+        return self.EOF if c == "" else c
 
     def get(self):
         c = self.peek_char
@@ -83,7 +83,7 @@ class Buf:
         # this way of tracking location gives funny results when get() returns
         # a newline, but we don't actually care about that anyway...
         self.column += 1
-        if c == '\n':
+        if c == "\n":
             self.line += 1
             self.column = 0
         return c
@@ -95,7 +95,7 @@ class Buf:
         return Location(self.line, self.column)
 
     def peek_location(self):
-        return Location(self.line, self.column+1)
+        return Location(self.line, self.column + 1)
 
 
 class Lexer:
@@ -119,23 +119,24 @@ class Lexer:
 
         where = self.stream.location()
 
-        def const(typ): return lambda c, loc: Token(typ, loc)
+        def const(typ):
+            return lambda c, loc: Token(typ, loc)
 
         recognizers = {
             Buf.EOF: const(Token.EOS),
-            '(': const(Token.LPAREN),
-            ')': const(Token.RPAREN),
-            '{': const(Token.LBRACE),
-            '}': const(Token.RBRACE),
-            ';': const(Token.SEMI),
-            ':': const(Token.COLON),
-            ',': const(Token.COMMA),
-            '.': const(Token.DOT),
-            '>': const(Token.GT),
-            '=': const(Token.EQ),
-            '@': self.command,
-            '\'': self.string,
-            '"': self.string
+            "(": const(Token.LPAREN),
+            ")": const(Token.RPAREN),
+            "{": const(Token.LBRACE),
+            "}": const(Token.RBRACE),
+            ";": const(Token.SEMI),
+            ":": const(Token.COLON),
+            ",": const(Token.COMMA),
+            ".": const(Token.DOT),
+            ">": const(Token.GT),
+            "=": const(Token.EQ),
+            "@": self.command,
+            "'": self.string,
+            '"': self.string,
         }
 
         if c in recognizers:
@@ -147,29 +148,32 @@ class Lexer:
         if self.ident_init_char(c):
             return self.ident(c, where)
 
-        raise ParseError(where,
-            f"Unexpected character: '{c}' (0x{hex(ord(c))})")
+        raise ParseError(where, f"Unexpected character: '{c}' (0x{hex(ord(c))})")
 
     def command(self, c, where):
         tok = self.ident(c, where)
-        if tok.value == '@constrain': tok.type = Token.CONSTRAIN
-        elif tok.value == '@context': tok.type = Token.CONTEXT
-        elif tok.value == '@import': tok.type = Token.IMPORT
-        elif tok.value == '@override': tok.type = Token.OVERRIDE
+        if tok.value == "@constrain":
+            tok.type = Token.CONSTRAIN
+        elif tok.value == "@context":
+            tok.type = Token.CONTEXT
+        elif tok.value == "@import":
+            tok.type = Token.IMPORT
+        elif tok.value == "@override":
+            tok.type = Token.OVERRIDE
         else:
-            raise ParseError(where,
-                f"Unrecognized @-command: {tok.value}")
+            raise ParseError(where, f"Unrecognized @-command: {tok.value}")
         return tok
 
     def comment(self, c):
-        if c != '/': return False
-        if self.stream.peek() == '/':
+        if c != "/":
+            return False
+        if self.stream.peek() == "/":
             self.stream.get()
             tmp = self.stream.get()
-            while tmp != '\n' and tmp != Buf.EOF:
+            while tmp != "\n" and tmp != Buf.EOF:
                 tmp = self.stream.get()
             return True
-        elif self.stream.peek() == '*':
+        elif self.stream.peek() == "*":
             self.stream.get()
             self.multiline_comment()
             return True
@@ -179,43 +183,59 @@ class Lexer:
         while True:
             c = self.stream.get()
             if c == Buf.EOF:
-                raise ParseError(self.stream.location(),
-                    "Unterminated multi-line comment")
-            if c == '*' and self.stream.peek() == '/':
+                raise ParseError(
+                    self.stream.location(), "Unterminated multi-line comment"
+                )
+            if c == "*" and self.stream.peek() == "/":
                 self.stream.get()
                 return
-            if c == '/' and self.stream.peek() == '*':
+            if c == "/" and self.stream.peek() == "*":
                 self.stream.get()
                 self.multiline_comment()
 
     def ident_init_char(self, c):
-        if c == '$': return True
-        if c == '_': return True
-        if 'A' <= c and c <= 'Z': return True
-        if 'a' <= c and c <= 'z': return True
+        if c == "$":
+            return True
+        if c == "_":
+            return True
+        if "A" <= c and c <= "Z":
+            return True
+        if "a" <= c and c <= "z":
+            return True
         return False
 
     def ident_char(self, c):
-        if self.ident_init_char(c): return True
-        if '0' <= c and c <= '9': return True
+        if self.ident_init_char(c):
+            return True
+        if "0" <= c and c <= "9":
+            return True
         return False
 
     def numid_init_char(self, c):
-        if '0' <= c and c <= '9': return True
-        if c == '-' or c == '+': return True
+        if "0" <= c and c <= "9":
+            return True
+        if c == "-" or c == "+":
+            return True
         return False
 
     def numid_char(self, c):
-        if self.numid_init_char(c): return True
-        if self.ident_char(c): return True
-        if c == '.': return True
+        if self.numid_init_char(c):
+            return True
+        if self.ident_char(c):
+            return True
+        if c == ".":
+            return True
         return False
 
     def interpolant_char(self, c):
-        if c == '_': return True
-        if '0' <= c and c <= '9': return True
-        if 'A' <= c and c <= 'Z': return True
-        if 'a' <= c and c <= 'z': return True
+        if c == "_":
+            return True
+        if "0" <= c and c <= "9":
+            return True
+        if "A" <= c and c <= "Z":
+            return True
+        if "a" <= c and c <= "z":
+            return True
         return False
 
     # TODO all implementations, this is terrible. interpolation should be
@@ -223,43 +243,47 @@ class Lexer:
     # of ugliness...
     def string(self, first, where):
         result = stringval.StringVal()
-        current = ''  # TODO ok to just use strings and +=???
+        current = ""  # TODO ok to just use strings and +=???
         while self.stream.peek() != first:
             peek = self.stream.peek()
             if peek == Buf.EOF:
-                raise ParseError(self.stream.peek_location(),
-                    "Unterminated string literal")
-            elif peek == '$':
+                raise ParseError(
+                    self.stream.peek_location(), "Unterminated string literal"
+                )
+            elif peek == "$":
                 self.stream.get()
-                if self.stream.peek() != '{':
-                    raise ParseError(self.stream.peek_location(),
-                        "Expected '{'")
+                if self.stream.peek() != "{":
+                    raise ParseError(self.stream.peek_location(), "Expected '{'")
                 self.stream.get()
                 if len(current) > 0:
                     result.add_literal(current)
-                current = ''
-                interpolant = ''
-                while self.stream.peek() != '}':
+                current = ""
+                interpolant = ""
+                while self.stream.peek() != "}":
                     if not self.interpolant_char(self.stream.peek()):
-                        raise ParseError(self.stream.peek_location(),
+                        raise ParseError(
+                            self.stream.peek_location(),
                             "Character not allowed in string interpolant: "
                             f"{self.stream.peek()} "
-                            f"(0x{hex(ord(self.stream.peek()))})")
+                            f"(0x{hex(ord(self.stream.peek()))})",
+                        )
                     interpolant += self.stream.get()
                 self.stream.get()
                 result.add_interpolant(interpolant)
-            elif peek == '\\':
+            elif peek == "\\":
                 self.stream.get()
                 escape = self.stream.get()
                 escapes = "$'\"\\tnr"
                 if escape in escapes:
                     current += escape
-                elif escape == '\n':
+                elif escape == "\n":
                     pass  # escaped newline: ignore
                 else:
-                    raise ParseError(self.stream.location(),
+                    raise ParseError(
+                        self.stream.location(),
                         f"Unrecognized escape sequence: '\\{escape}' "
-                        f"(0x{hex(ord(escape))})")
+                        f"(0x{hex(ord(escape))})",
+                    )
             else:
                 current += self.stream.get()
         self.stream.get()
@@ -269,11 +293,11 @@ class Lexer:
         tok.string_value = result
         return tok
 
-    INT_RE = re.compile('[-+]?[0-9]+')
-    DOUBLE_RE = re.compile('[-+]?[0-9]+\\.?[0-9]*([eE][-+]?[0-9]+)?')
+    INT_RE = re.compile("[-+]?[0-9]+")
+    DOUBLE_RE = re.compile("[-+]?[0-9]+\\.?[0-9]*([eE][-+]?[0-9]+)?")
 
     def numid(self, first, where):
-        if first == '0' and self.stream.peek() == 'x':
+        if first == "0" and self.stream.peek() == "x":
             self.stream.get()
             return self.hex_literal(where)
 
@@ -290,9 +314,12 @@ class Lexer:
         return token  # it's a generic NUMID
 
     def hex_char(self, c):
-        if '0' <= c and c <= '9': return ord(c) - ord('0')
-        if 'a' <= c and c <= 'f': return 10 + ord(c) - ord('a')
-        if 'A' <= c and c <= 'F': return 10 + ord(c) - ord('A')
+        if "0" <= c and c <= "9":
+            return ord(c) - ord("0")
+        if "a" <= c and c <= "f":
+            return 10 + ord(c) - ord("a")
+        if "A" <= c and c <= "F":
+            return 10 + ord(c) - ord("A")
         return -1
 
     def hex_literal(self, where):
@@ -341,8 +368,9 @@ class ParserImpl:
 
     def expect(self, typ):
         if not self.advance_if(typ):
-            raise ParseError(self.cur.location,
-                f"Expected {typ}, found {self.cur.type}")
+            raise ParseError(
+                self.cur.location, f"Expected {typ}, found {self.cur.type}"
+            )
 
     def parse_context(self):
         self.expect(Token.LPAREN)
@@ -366,15 +394,18 @@ class ParserImpl:
 
         if self.advance_if(Token.COLON):
             if not self.parse_primrule(nested):
-                raise ParseError(self.cur.location,
-                    "Expected @import, @constrain, or property setting")
+                raise ParseError(
+                    self.cur.location,
+                    "Expected @import, @constrain, or property setting",
+                )
             self.advance_if(Token.SEMI)
         elif self.advance_if(Token.LBRACE):
             while not self.advance_if(Token.RBRACE):
                 self.parse_rule(nested)
         else:
-            raise ParseError(self.cur.location,
-                "Expected ':' or '{' following selector")
+            raise ParseError(
+                self.cur.location, "Expected ':' or '{' following selector"
+            )
 
         rules.append(nested)
 
@@ -383,8 +414,9 @@ class ParserImpl:
             self.advance()
             self.expect(Token.STRING)
             if self.last.string_value.interpolation():
-                raise ParseError(self.last.location,
-                    "Interpolation not allowed in import statements")
+                raise ParseError(
+                    self.last.location, "Interpolation not allowed in import statements"
+                )
             rules.append(ast.Import(self.last.string_value.str()))
             return True
         elif self.cur.type is Token.CONSTRAIN:
@@ -412,13 +444,21 @@ class ParserImpl:
         # TODO this is very different from the java code but it sure
         # would be nice to keep this simpler... if this doesn't work out,
         # refer to the java/c++ code for the typed Value stuff
-        if self.cur.type not in [Token.INT, Token.DOUBLE, Token.STRING,
-                Token.NUMID, Token.IDENT]:
+        if self.cur.type not in [
+            Token.INT,
+            Token.DOUBLE,
+            Token.STRING,
+            Token.NUMID,
+            Token.IDENT,
+        ]:
             raise ParseError(
                 self.cur.location,
                 f"{self.cur.type} cannot occur here. Expected property value "
-                + "(number, identifier, string, or boolean)")
-        propval = self.cur.value if self.cur.value else self.cur.string_value.str()  # TODO not complete...
+                + "(number, identifier, string, or boolean)",
+            )
+        propval = (
+            self.cur.value if self.cur.value else self.cur.string_value.str()
+        )  # TODO not complete...
 
         self.advance()
         return ast.PropDef(name, propval, origin, override)
@@ -452,6 +492,7 @@ class ParserImpl:
 
     def parse_term(self):
         return self.parse_step()
+
     #     left = self.parse_step()
     #     while self.cur.type is Token.GT:
     #         # here we have to distinguish another step from a trailing '>'. again,
@@ -481,17 +522,20 @@ class ParserImpl:
             return self.last.value
         if self.advance_if(Token.STRING):
             if self.last.string_value.interpolation():
-                raise ParseError(self.last.location,
-                    f"Interpolation not allowed in {what}")
+                raise ParseError(
+                    self.last.location, f"Interpolation not allowed in {what}"
+                )
             return self.last.string_value.str()
-        raise ParseError(self.cur.location,
-            f"{self.cur.type} cannot occur here. Expected {what}")
+        raise ParseError(
+            self.cur.location, f"{self.cur.type} cannot occur here. Expected {what}"
+        )
 
 
 class Parser:
     def load_ccs_stream(self, stream, filename, dag, import_resolver):
         rule = self.parse_ccs_stream(stream, filename, import_resolver, [])
-        if not rule: return
+        if not rule:
+            return
 
         # everything parsed, no errors. now it's safe to modify the dag...
         rule.add_to(dag.build_context())

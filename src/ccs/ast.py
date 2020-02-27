@@ -4,6 +4,7 @@ from enum import Enum
 # TODO seems like a decent tutorial place to start:
 #   https://realpython.com/python-type-checking/
 
+
 class Origin:
     def __init__(self, filename, line_number):
         self.filename = filename
@@ -34,7 +35,10 @@ class Import:
             try:
                 self.ast = parser.parse_ccs_stream(
                     import_resolver.resolve(self.location),
-                    self.location, import_resolver, in_progress)
+                    self.location,
+                    import_resolver,
+                    in_progress,
+                )
                 if self.ast:
                     return True
             finally:
@@ -53,8 +57,7 @@ class PropDef:
         return f"def {self.name}"
 
     def add_to(self, build_context):
-        build_context.add_property(self.name, self.value, self.origin,
-            self.override)
+        build_context.add_property(self.name, self.value, self.origin, self.override)
 
     def resolve_imports(self, *args):
         return True
@@ -103,8 +106,8 @@ class Nested:
 
 
 class Op(Enum):
-    AND = 'AND'
-    OR = 'OR'
+    AND = "AND"
+    OR = "OR"
 
 
 class Expr:

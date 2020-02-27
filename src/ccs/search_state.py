@@ -35,8 +35,15 @@ class MaxAccumulator:
 
 
 class Context:
-    def __init__(self, dag, prop_accumulator=MaxAccumulator,
-            tallies=m(), or_specificities=m(), props=m(), poisoned=None):
+    def __init__(
+        self,
+        dag,
+        prop_accumulator=MaxAccumulator,
+        tallies=m(),
+        or_specificities=m(),
+        props=m(),
+        poisoned=None,
+    ):
         self.dag = dag
         self.tallies = tallies
         self.or_specificities = or_specificities
@@ -84,7 +91,10 @@ class Context:
                     keys.append(constraint)
                 for name, prop_val in n.props:
                     prop_vals = props.get(name, self.prop_accumulator())
-                    prop_specificity = Specificity(prop_val.override_level, 0, 0, 0) + activation_specificity
+                    prop_specificity = (
+                        Specificity(prop_val.override_level, 0, 0, 0)
+                        + activation_specificity
+                    )
                     props = props.set(name, prop_vals.accum(prop_val, prop_specificity))
                 for n in n.children:
                     activate(n, activation_specificity)
@@ -137,7 +147,9 @@ class Context:
 
         while keys:
             key = keys.popleft()
-            assert(len(key.values) < 2)
+            assert len(key.values) < 2
             match_step(key.name, next(iter(key.values), None))
 
-        return Context(self.dag, self.prop_accumulator, tallies, or_specificities, props, poisoned)
+        return Context(
+            self.dag, self.prop_accumulator, tallies, or_specificities, props, poisoned
+        )

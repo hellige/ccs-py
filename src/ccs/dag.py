@@ -3,14 +3,18 @@ from functools import total_ordering
 import heapq
 
 
-class Specificity(namedtuple('Specificity',
-        ['override', 'positive', 'negative', 'wildcard'])):
+class Specificity(
+    namedtuple("Specificity", ["override", "positive", "negative", "wildcard"])
+):
     __slots__ = ()
 
     def __add__(self, other):
         return Specificity(
-            self.override + other.override, self.positive + other.positive,
-            self.negative + other.negative, self.wildcard + other.wildcard)
+            self.override + other.override,
+            self.positive + other.positive,
+            self.negative + other.negative,
+            self.wildcard + other.wildcard,
+        )
 
 
 POS_LIT_SPEC = Specificity(0, 1, 0, 0)
@@ -36,12 +40,12 @@ class Key:
         return self.name
 
     def __eq__(self, other):
-        if not other: return False
+        if not other:
+            return False
         return self.name == other.name and self.values == other.values
 
     def __lt__(self, other):
-        return ((self.name, sorted(self.values))
-            < (other.name, sorted(other.values)))
+        return (self.name, sorted(self.values)) < (other.name, sorted(other.values))
 
     def __hash__(self):
         return hash((self.name, self.values))
@@ -85,7 +89,8 @@ class Node:
         self.tally_count += 1
 
     def accumulate_stats(self, stats, visited):
-        if self in visited: return
+        if self in visited:
+            return
         visited.add(self)
         stats.nodes += 1
         stats.props += len(self.props)
@@ -233,12 +238,16 @@ def build_dag(rule_tree_nodes):
     # obviously there are better ways of gathering the unique literals and unique clauses,
     # if performance needs to be improved...
     sorted_formulae = sorted(rule_tree_nodes, key=lambda n: n.formula)
-    all_clauses = [c for f in sorted_formulae for c in f.formula.clauses | f.formula.shared]
+    all_clauses = [
+        c for f in sorted_formulae for c in f.formula.clauses | f.formula.shared
+    ]
     for lit in {l for c in all_clauses for l in c.elements()}:
         lit_nodes[lit] = add_literal(dag, lit)
     clause_nodes = {}
     for clause in sorted(all_clauses):
-        clause_nodes[clause] = build(clause, lambda: AndNode(clause.specificity()), lit_nodes, clause_nodes)
+        clause_nodes[clause] = build(
+            clause, lambda: AndNode(clause.specificity()), lit_nodes, clause_nodes
+        )
     form_nodes = {}
     for rule in sorted_formulae:
         node = build(rule.formula, lambda: OrNode(), clause_nodes, form_nodes)

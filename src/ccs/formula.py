@@ -19,14 +19,13 @@ class Clause:
         return Clause(self.literals.union(other.literals))
 
     def specificity(self):
-        return sum((l.specificity for l in self.literals),
-            Specificity(0, 0, 0, 0))
+        return sum((l.specificity for l in self.literals), Specificity(0, 0, 0, 0))
 
     def __str__(self):
         return " ".join(map(str, sorted(self.literals)))
 
     def _repr_pretty_(self, p, cycle):
-        p.text(str(self) if not cycle else '...')
+        p.text(str(self) if not cycle else "...")
 
     def __len__(self):
         return len(self.literals)
@@ -43,7 +42,7 @@ class Clause:
         return hash(self.literals)
 
     def __repr__(self):
-        return '<{}>'.format(''.join(map(str, self.literals)))
+        return "<{}>".format("".join(map(str, self.literals)))
 
 
 # TODO clean up usages of shared so that it's a constructor arg, make Formula immutable
@@ -68,7 +67,7 @@ class Formula:
         return ", ".join(map(str, sorted(self.clauses)))
 
     def _repr_pretty_(self, p, cycle):
-        p.text(str(self) if not cycle else '...')
+        p.text(str(self) if not cycle else "...")
 
     def __lt__(self, other):
         if len(self.clauses) == len(other.clauses):
@@ -82,7 +81,7 @@ class Formula:
         return hash(self.clauses)
 
     def __repr__(self):
-        return '({})'.format(''.join(self.clauses))
+        return "({})".format("".join(self.clauses))
 
 
 def subsumes(c: Clause, d: Clause) -> bool:
@@ -96,7 +95,9 @@ def normalize(formula: Formula) -> Formula:
         if not any(subsumes(s, c) for s in minimized):
             minimized.add(c)
     # note *strict* subset check here...
-    shared = {s for s in formula.shared if any(s.elements() < c.elements() for c in minimized)}
+    shared = {
+        s for s in formula.shared if any(s.elements() < c.elements() for c in minimized)
+    }
     result = Formula(minimized)
     result.shared = frozenset(shared)
     return result

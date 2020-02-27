@@ -7,10 +7,12 @@ from ccs import parser
 cases = []
 
 
-def succ(ccs): cases.append((ccs, True))
+def succ(ccs):
+    cases.append((ccs, True))
 
 
-def fail(ccs): cases.append((ccs, False))
+def fail(ccs):
+    cases.append((ccs, False))
 
 
 # basic phrases
@@ -23,11 +25,11 @@ succ("elem.id {prop = 'val'}")
 fail("elem.id {prop = @override 'hi'}")
 succ("a.class blah elem.id {prop=3}")
 succ("a.class blah elem.id {prop=2.3}")
-succ("a.class blah elem.id {prop=\"val\"}")
-fail("a.class blah elem.id prop=\"val\" }")
+succ('a.class blah elem.id {prop="val"}')
+fail('a.class blah elem.id prop="val" }')
 succ("a.class blah elem.id {prop=0xAB12}")
 succ("a.class blah elem. id {prop=2.3}")
-succ("a . class elem.id {prop=\"val\"}")
+succ('a . class elem.id {prop="val"}')
 fail("blah")
 fail("@import 'file'; @context (foo)")
 fail("@yuno?")
@@ -90,12 +92,12 @@ fail("a = 'h${t-here}i'")
 
 def parse(ccs):
     try:
-        parser.Parser().parse(io.StringIO(ccs), '-')
+        parser.Parser().parse(io.StringIO(ccs), "-")
         return True
     except parser.ParseError:
         return False
 
 
-@pytest.mark.parametrize('ccs, expected', cases)
+@pytest.mark.parametrize("ccs, expected", cases)
 def test_parse(ccs, expected):
     assert parse(ccs) == expected

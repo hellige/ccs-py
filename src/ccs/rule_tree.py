@@ -33,16 +33,16 @@ class RuleTreeNode:
         self.constraints.append(key)
 
     def _accumulate_stats(self, stats):
-        stats['nodes'] += 1
-        stats['props'] += len(self.props)
-        stats['constraints'] += len(self.constraints)
-        stats['edges'] += len(self.children)
+        stats["nodes"] += 1
+        stats["props"] += len(self.props)
+        stats["constraints"] += len(self.constraints)
+        stats["edges"] += len(self.children)
         for node in self.children:
             node._accumulate_stats(stats)
 
     def stats(self):
         # TODO also perhaps max formula size? avg formula size? etc?
-        stats = {'nodes': 0, 'props': 0, 'constraints': 0, 'edges': 0}
+        stats = {"nodes": 0, "props": 0, "constraints": 0, "edges": 0}
         self._accumulate_stats(stats)
         return stats
 
@@ -50,7 +50,9 @@ class RuleTreeNode:
         return str(self.formula)
 
     def color(self):
-        return 'lightblue' if len(self.props) or len(self.constraints) else 'transparent'
+        return (
+            "lightblue" if len(self.props) or len(self.constraints) else "transparent"
+        )
 
 
 def to_dnf(expr, limit: int = 100) -> Formula:
@@ -118,9 +120,11 @@ def expand(limit: int, *forms):
             nontrivial += 1
 
     if result_size > limit:
-        raise ValueError("Expanded form would have {} clauses, which is more "
+        raise ValueError(
+            "Expanded form would have {} clauses, which is more "
             "than the limit of {}. Consider increasing the limit or stratifying "
-            "this rule.".format(result_size, limit))
+            "this rule.".format(result_size, limit)
+        )
 
     # next, perform the expansion...
     def exprec(forms) -> Formula:
@@ -132,6 +136,7 @@ def expand(limit: int, *forms):
         res = Formula(cs)
         res.shared = first.shared | rest.shared
         return res
+
     res = exprec(forms)
 
     # finally, gather shared subclauses and normalize...

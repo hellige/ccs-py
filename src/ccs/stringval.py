@@ -30,12 +30,14 @@ class StringVal:
         self.elements.append(Interpolant(i))
 
     def interpolation(self):
-        if len(self.elements) > 1: return True
-        if self.elements[0].is_interpolant: return True
+        if len(self.elements) > 1:
+            return True
+        if self.elements[0].is_interpolant:
+            return True
         return False
 
     def str(self):
-        return ''.join(e.interpolate() for e in self.elements)
+        return "".join(e.interpolate() for e in self.elements)
 
     def __str__(self):
         return self.str()
