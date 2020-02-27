@@ -7,9 +7,6 @@ env:
 
 jobs:
   include:
-  - name: "run test suite with python 3.5.1"
-    python: 3.5.1
-    dist: trusty
   - name: "run test suite with python 3.6"
     python: 3.6
   - name: "run test suite with python 3.7"
