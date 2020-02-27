@@ -4,6 +4,7 @@
 /dist
 /.eggs
 /.ipynb_checkpoints
+/.mypy_cache
 /.pytest_cache
 /.tox
 /.vscode

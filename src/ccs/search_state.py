@@ -4,6 +4,7 @@ import pyrsistent
 
 from ccs.dag import AndNode, Key, Specificity
 
+
 # TODO really this should probably be a map from value to specificity, where only the highest specificity
 # for a given specific value/origin is retained
 class SetAccumulator:
@@ -32,8 +33,10 @@ class MaxAccumulator:
     def __repr__(self):
         return repr(pyrsistent.thaw(self.values))
 
+
 class Context:
-    def __init__(self, dag, prop_accumulator=MaxAccumulator, tallies=m(), or_specificities=m(), props=m(), poisoned=None):
+    def __init__(self, dag, prop_accumulator=MaxAccumulator,
+            tallies=m(), or_specificities=m(), props=m(), poisoned=None):
         self.dag = dag
         self.tallies = tallies
         self.or_specificities = or_specificities
@@ -110,7 +113,6 @@ class Context:
                 poisoned = poisoned.add(n)
                 for n in n.children:
                     poison(n)
-
 
         def match_step(key, value):
             if key in self.dag.children:

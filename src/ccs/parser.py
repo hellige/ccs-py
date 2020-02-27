@@ -30,7 +30,7 @@ class Token:
     COLON = "':'"
     COMMA = "','"
     DOT = "'.'"
-    GT = "'>'" # TODO delete!
+    GT = "'>'"  # TODO delete!
     EQ = "'='"
     CONSTRAIN = "'@constrain'"
     CONTEXT = "'@context'"
@@ -46,13 +46,13 @@ class Token:
         self.type = typ
         self.location = location
         self.value = initial_val
-        self.string_value = None # TODO only for STRING interp, delete!
+        self.string_value = None  # TODO only for STRING interp, delete!
 
     def __str__(self):
         return self.type
 
     def append(self, s):
-        self.value += s # TODO anything better than string concat here?
+        self.value += s  # TODO anything better than string concat here?
 
     # TODO needed?
     # def int_value(self):
@@ -223,7 +223,7 @@ class Lexer:
     # of ugliness...
     def string(self, first, where):
         result = stringval.StringVal()
-        current = '' # TODO ok to just use strings and +=???
+        current = ''  # TODO ok to just use strings and +=???
         while self.stream.peek() != first:
             peek = self.stream.peek()
             if peek == Buf.EOF:
@@ -255,7 +255,7 @@ class Lexer:
                 if escape in escapes:
                     current += escape
                 elif escape == '\n':
-                    pass # escaped newline: ignore
+                    pass  # escaped newline: ignore
                 else:
                     raise ParseError(self.stream.location(),
                         f"Unrecognized escape sequence: '\\{escape}' "
@@ -287,7 +287,7 @@ class Lexer:
         elif self.DOUBLE_RE.fullmatch(token.value):
             token.type = Token.DOUBLE
 
-        return token # it's a generic NUMID
+        return token  # it's a generic NUMID
 
     def hex_char(self, c):
         if '0' <= c and c <= '9': return ord(c) - ord('0')
@@ -418,7 +418,7 @@ class ParserImpl:
                 self.cur.location,
                 f"{self.cur.type} cannot occur here. Expected property value "
                 + "(number, identifier, string, or boolean)")
-        propval = self.cur.value if self.cur.value else self.cur.string_value.str() # TODO not complete...
+        propval = self.cur.value if self.cur.value else self.cur.string_value.str()  # TODO not complete...
 
         self.advance()
         return ast.PropDef(name, propval, origin, override)

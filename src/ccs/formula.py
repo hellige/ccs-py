@@ -1,4 +1,5 @@
 from ccs.dag import Specificity
+from typing import Set
 
 
 class Clause:
@@ -89,7 +90,7 @@ def subsumes(c: Clause, d: Clause) -> bool:
 
 
 def normalize(formula: Formula) -> Formula:
-    minimized = set()
+    minimized: Set[Clause] = set()
     for c in formula.clauses:
         minimized = {s for s in minimized if not subsumes(c, s)}
         if not any(subsumes(s, c) for s in minimized):

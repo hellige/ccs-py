@@ -8,6 +8,8 @@ cases = []
 
 
 def succ(ccs): cases.append((ccs, True))
+
+
 def fail(ccs): cases.append((ccs, False))
 
 
@@ -92,6 +94,7 @@ def parse(ccs):
         return True
     except parser.ParseError:
         return False
+
 
 @pytest.mark.parametrize('ccs, expected', cases)
 def test_parse(ccs, expected):

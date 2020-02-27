@@ -53,17 +53,17 @@ class RuleTreeNode:
         return 'lightblue' if len(self.props) or len(self.constraints) else 'transparent'
 
 
-def to_dnf(expr: Expr, limit: int = 100) -> Formula:
+def to_dnf(expr, limit: int = 100) -> Formula:
     if expr.is_literal:
         return Formula([Clause([expr.key])])
     if expr.op == Op.OR:
         res = merge(map(lambda e: to_dnf(e, limit), expr.children))
         return res
-    elif expr.op == Op.AND:
-        return expand(limit, *map(lambda e: to_dnf(e, limit), expr.children))
+    assert expr.op == Op.AND
+    return expand(limit, *map(lambda e: to_dnf(e, limit), expr.children))
 
 
-def flatten(expr: Expr) -> Expr:
+def flatten(expr):
     if expr.is_literal:
         return expr
 
@@ -118,7 +118,9 @@ def expand(limit: int, *forms):
             nontrivial += 1
 
     if result_size > limit:
-        raise ValueError("Expanded form would have {} clauses, which is more than the limit of {}. Consider increasing the limit or stratifying this rule.".format(result_size, limit))
+        raise ValueError("Expanded form would have {} clauses, which is more "
+            "than the limit of {}. Consider increasing the limit or stratifying "
+            "this rule.".format(result_size, limit))
 
     # next, perform the expansion...
     def exprec(forms) -> Formula:

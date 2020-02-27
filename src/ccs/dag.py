@@ -51,7 +51,7 @@ class LiteralMatcher:
     def __init__(self):
         self.wildcard = None
         self.positive_values = defaultdict(list)
-        self.negative_values = [] # TODO support this
+        self.negative_values = []  # TODO support this
 
     def add_values(self, values, node):
         # because we find the set of unique literals prior to creating these matchers, we
@@ -79,7 +79,7 @@ class Node:
         self.children = []
         self.props = []
         self.constraints = []
-        self.tally_count = 0 # used for poisoning in case of OrNode
+        self.tally_count = 0  # used for poisoning in case of OrNode
 
     def add_link(self):
         self.tally_count += 1

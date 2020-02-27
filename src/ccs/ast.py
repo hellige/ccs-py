@@ -1,4 +1,3 @@
-from collections import namedtuple
 from enum import Enum
 
 
@@ -77,7 +76,7 @@ class Constraint:
 
 class Nested:
     # selector is an expr type, and/or or a literal
-    def __init__(self, selector = None):
+    def __init__(self, selector=None):
         self.selector = selector
         self.rules = []
 

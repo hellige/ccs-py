@@ -15,9 +15,7 @@ from setuptools import find_packages, setup
 
 # TODO also look at pytest for package layout, they have a nice almost-everything-private code layout
 
-# TODO set up travis
 # TODO set up codecov
-# TODO set up tox?
 
 
 VERSION = '0.1.0'
@@ -55,11 +53,8 @@ setup(
     install_requires=['pyrsistent'],
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    test_suite='test',
-    tests_require=['pytest'],
     setup_requires=[
         'setuptools-scm',
-        'pytest-runner'
     ],
     entry_points={
         'console_scripts': [
