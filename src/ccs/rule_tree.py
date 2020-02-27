@@ -1,7 +1,8 @@
 from collections import defaultdict
 from itertools import chain
+from typing import Dict, Set
 
-from ccs.ast import Expr, Op, Step
+from ccs.ast import Expr, Op, Selector, Step
 from ccs.dag import Key
 from ccs.formula import Clause, Formula, normalize
 from ccs.property import Property
@@ -55,9 +56,11 @@ class RuleTreeNode:
         )
 
 
-def to_dnf(expr, limit: int = 100) -> Formula:
-    if expr.is_literal:
+def to_dnf(expr: Selector, limit: int = 100) -> Formula:
+    if isinstance(expr, Step):
         return Formula([Clause([expr.key])])
+
+    assert isinstance(expr, Expr)
     if expr.op == Op.OR:
         res = merge(map(lambda e: to_dnf(e, limit), expr.children))
         return res
@@ -65,11 +68,13 @@ def to_dnf(expr, limit: int = 100) -> Formula:
     return expand(limit, *map(lambda e: to_dnf(e, limit), expr.children))
 
 
-def flatten(expr):
-    if expr.is_literal:
+def flatten(expr: Selector) -> Selector:
+    if isinstance(expr, Step):
         return expr
 
-    lit_children = defaultdict(set)
+    assert isinstance(expr, Expr)
+
+    lit_children: Dict[str, Set[str]] = defaultdict(set)
     new_children = []
 
     def add_child(e):

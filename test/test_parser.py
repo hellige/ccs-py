@@ -101,3 +101,9 @@ def parse(ccs):
 @pytest.mark.parametrize("ccs, expected", cases)
 def test_parse(ccs, expected):
     assert parse(ccs) == expected
+
+
+def test_parse_selector_and_print():
+    ccs = "(a, b, c) (d, e, f)"
+    ast = parser.Parser().parse_selector(io.StringIO(ccs))
+    assert str(ast) == "(AND (OR a b c) (OR d e f))"

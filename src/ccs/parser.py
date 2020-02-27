@@ -1,3 +1,5 @@
+"""CCS parser"""
+
 import re
 
 from ccs import ast
