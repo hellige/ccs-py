@@ -1,4 +1,4 @@
-"""CCS parser"""
+"""CCS parser."""
 
 import re
 

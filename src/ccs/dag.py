@@ -88,6 +88,9 @@ class Node:
     def add_link(self):
         self.tally_count += 1
 
+    def accumulate_subclass_stats(self, stats):
+        pass
+
     def accumulate_stats(self, stats, visited):
         if self in visited:
             return
@@ -150,7 +153,7 @@ class Dag:
     def stats(self):
         stats = DagStats()
         visited = set()
-        for key, matcher in self.children.items():
+        for _, matcher in self.children.items():
             stats.literals += 1
             if matcher.wildcard:
                 matcher.wildcard.accumulate_stats(stats, visited)
