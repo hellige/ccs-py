@@ -25,15 +25,13 @@ class Op(Enum):
 class Selector:
     """Base class for AST nodes representing selector expressions."""
 
-    def __init__(self, is_literal: bool) -> None:
-        self.is_literal = is_literal
+    pass
 
 
 class Expr(Selector):
     """A conjunction or disjunction selector expression."""
 
-    def __init__(self, op: Op, children: List["Expr"]) -> None:
-        super().__init__(False)
+    def __init__(self, op: Op, children: List[Selector]) -> None:
         self.op = op
         self.children = children
 
@@ -41,12 +39,12 @@ class Expr(Selector):
         return f"({self.op.name} {' '.join(map(str, self.children))})"
 
 
-def conj(terms: List[Expr]) -> Expr:
+def conj(terms: List[Selector]) -> Expr:
     "Constructs a conjunction expression."
     return Expr(Op.AND, terms)
 
 
-def disj(terms: List[Expr]) -> Expr:
+def disj(terms: List[Selector]) -> Expr:
     "Constructs a disjunction expression."
     return Expr(Op.OR, terms)
 
@@ -55,7 +53,6 @@ class Step(Selector):
     """A single-step primitive selector expression."""
 
     def __init__(self, key: Key) -> None:
-        super().__init__(True)
         self.key = key
 
     def __str__(self) -> str:

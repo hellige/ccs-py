@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import chain
-from typing import Dict, Set
+from typing import Dict, FrozenSet, Iterable, Sequence, Set
 
 from ccs.ast import Expr, Op, Selector, Step
 from ccs.dag import Key
@@ -77,8 +77,9 @@ def flatten(expr: Selector) -> Selector:
     lit_children: Dict[str, Set[str]] = defaultdict(set)
     new_children = []
 
-    def add_child(e):
-        if e.is_literal and expr.op == Op.OR:
+    def add_child(e: Selector) -> None:
+        assert isinstance(expr, Expr)  # mypy should know this, but doesn't...
+        if isinstance(e, Step) and expr.op == Op.OR:
             # in this case, we can group matching literals by key to avoid unnecessary dnf expansion.
             # it's not totally clear whether it's better to do this here or in to_dnf() (or possibly even in
             # normalize()??, so this is a bit of an arbitrary choice...
@@ -93,7 +94,7 @@ def flatten(expr: Selector) -> Selector:
             new_children.append(e)
 
     for e in map(flatten, expr.children):
-        if not e.is_literal and e.op == expr.op:
+        if isinstance(e, Expr) and e.op == expr.op:
             for c in e.children:
                 add_child(c)
         else:
@@ -104,13 +105,14 @@ def flatten(expr: Selector) -> Selector:
     return Expr(expr.op, new_children)
 
 
-def merge(forms) -> Formula:
-    res = Formula(frozenset().union(*(f.elements() for f in forms)))
-    res.shared = frozenset().union(*(f.shared for f in forms))
-    return normalize(res)
+def merge(forms: Iterable[Formula]) -> Formula:
+    empty: FrozenSet[Clause] = frozenset()  # mypy appeasement...
+    clauses = empty.union(*(f.elements() for f in forms))
+    shared = empty.union(*(f.shared for f in forms))
+    return normalize(Formula(clauses, shared))
 
 
-def expand(limit: int, *forms):
+def expand(limit: int, *forms: Formula) -> Formula:
     # first, build the subclause which is guaranteed to be common
     # to all clauses produced in this expansion. keep count of
     # the non-trivial forms and the size of the result as we go...
@@ -132,14 +134,13 @@ def expand(limit: int, *forms):
         )
 
     # next, perform the expansion...
-    def exprec(forms) -> Formula:
+    def exprec(forms: Sequence[Formula]) -> Formula:
         if len(forms) == 0:
             return Formula([Clause([])])
         first = forms[0]
         rest = exprec(forms[1:])
         cs = (c1.union(c2) for c1 in first.elements() for c2 in rest.elements())
-        res = Formula(cs)
-        res.shared = first.shared | rest.shared
+        res = Formula(cs, first.shared | rest.shared)
         return res
 
     res = exprec(forms)
@@ -152,5 +153,4 @@ def expand(limit: int, *forms):
         for f in forms:
             if len(f) > 1:
                 all_shared.update(c for c in f.elements() if len(c) > 1)
-    res.shared = res.shared | all_shared
-    return normalize(res)
+    return normalize(Formula(res.elements(), res.shared | all_shared))
