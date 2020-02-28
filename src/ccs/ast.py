@@ -1,7 +1,9 @@
 """CCS abstract syntax tree."""
 
+from abc import ABC, abstractmethod
+from collections import defaultdict
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional, Set
 
 from ccs.dag import Key
 
@@ -22,10 +24,8 @@ class Op(Enum):
     OR = "OR"
 
 
-class Selector:
+class Selector(ABC):
     """Base class for AST nodes representing selector expressions."""
-
-    pass
 
 
 class Expr(Selector):
@@ -40,12 +40,12 @@ class Expr(Selector):
 
 
 def conj(terms: List[Selector]) -> Expr:
-    "Constructs a conjunction expression."
+    "Construct a conjunction expression."
     return Expr(Op.AND, terms)
 
 
 def disj(terms: List[Selector]) -> Expr:
-    "Constructs a disjunction expression."
+    "Construct a disjunction expression."
     return Expr(Op.OR, terms)
 
 
@@ -59,9 +59,10 @@ class Step(Selector):
         return f"{self.key}"
 
 
-class AstNode:
+class AstNode(ABC):
     """Base class for AST nodes for rules."""
 
+    @abstractmethod
     def add_to(self, build_context) -> None:
         ...
 
@@ -159,3 +160,45 @@ class Nested:
 
     def __str__(self) -> str:
         return f"{self.selector} {{ {'; '.join(map(str, self.rules))} }}"
+
+
+def flatten(expr: Selector) -> Selector:
+    """Flatten a selector expression.
+
+    A selector is flattened when we've inlined trivially nested expressions. In other
+    words, a flat selector consists of strictly alternating levels of AND and OR."""
+
+    if isinstance(expr, Step):
+        return expr
+
+    assert isinstance(expr, Expr)
+
+    lit_children: Dict[str, Set[str]] = defaultdict(set)
+    new_children = []
+
+    def add_child(e: Selector) -> None:
+        assert isinstance(expr, Expr)  # mypy should know this, but doesn't...
+        if isinstance(e, Step) and expr.op == Op.OR:
+            # in this case, we can group matching literals by key to avoid unnecessary dnf expansion.
+            # it's not totally clear whether it's better to do this here or in to_dnf() (or possibly even in
+            # normalize()??, so this is a bit of an arbitrary choice...
+            # TODO negative matches will need to be handled here, probably adding as separate clusters,
+            # depending on specificity rules?
+            # TODO wildcard matches also need to be handled specially here, either as a flag on the key or
+            # a special entry in values...
+            # TODO if this is done prior to normalize(), that function needs to be changed to understand
+            # set-valued pos/neg literals... and might need to be changed for negative literals either way?
+            lit_children[e.key.name].update(e.key.values)
+        else:
+            new_children.append(e)
+
+    for e in map(flatten, expr.children):
+        if isinstance(e, Expr) and e.op == expr.op:
+            for c in e.children:
+                add_child(c)
+        else:
+            add_child(e)
+
+    for name in lit_children:
+        new_children.append(Step(Key(name, lit_children[name])))
+    return Expr(expr.op, new_children)

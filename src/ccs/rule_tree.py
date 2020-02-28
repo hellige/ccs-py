@@ -1,10 +1,9 @@
 """CCS rule tree representation."""
 
-from collections import defaultdict
 from itertools import chain
-from typing import Dict, FrozenSet, Iterable, List, Sequence, Set
+from typing import FrozenSet, Iterable, List, Sequence
 
-from ccs.ast import Expr, Op, Selector, Step
+from ccs.ast import Expr, Op, Selector, Step, flatten
 from ccs.dag import Key
 from ccs.formula import Clause, Formula, normalize
 from ccs.property import Property
@@ -68,43 +67,6 @@ def to_dnf(expr: Selector, limit: int = 100) -> Formula:
         return res
     assert expr.op == Op.AND
     return expand(limit, *map(lambda e: to_dnf(e, limit), expr.children))
-
-
-def flatten(expr: Selector) -> Selector:
-    if isinstance(expr, Step):
-        return expr
-
-    assert isinstance(expr, Expr)
-
-    lit_children: Dict[str, Set[str]] = defaultdict(set)
-    new_children = []
-
-    def add_child(e: Selector) -> None:
-        assert isinstance(expr, Expr)  # mypy should know this, but doesn't...
-        if isinstance(e, Step) and expr.op == Op.OR:
-            # in this case, we can group matching literals by key to avoid unnecessary dnf expansion.
-            # it's not totally clear whether it's better to do this here or in to_dnf() (or possibly even in
-            # normalize()??, so this is a bit of an arbitrary choice...
-            # TODO negative matches will need to be handled here, probably adding as separate clusters,
-            # depending on specificity rules?
-            # TODO wildcard matches also need to be handled specially here, either as a flag on the key or
-            # a special entry in values...
-            # TODO if this is done prior to normalize(), that function needs to be changed to understand
-            # set-valued pos/neg literals... and might need to be changed for negative literals either way?
-            lit_children[e.key.name].update(e.key.values)
-        else:
-            new_children.append(e)
-
-    for e in map(flatten, expr.children):
-        if isinstance(e, Expr) and e.op == expr.op:
-            for c in e.children:
-                add_child(c)
-        else:
-            add_child(e)
-
-    for name in lit_children:
-        new_children.append(Step(Key(name, lit_children[name])))
-    return Expr(expr.op, new_children)
 
 
 def merge(forms: Iterable[Formula]) -> Formula:

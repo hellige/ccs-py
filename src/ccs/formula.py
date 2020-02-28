@@ -102,7 +102,7 @@ def subsumes(c: Clause, d: Clause) -> bool:
 
 
 def normalize(formula: Formula) -> Formula:
-    """Normalizes a formula.
+    """Normalize a formula.
 
     For any formula, we define a normal form which exists, is unique, and is equivalent
     to the original formula under the usual interpretation of boolean logic.
