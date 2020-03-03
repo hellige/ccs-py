@@ -201,4 +201,6 @@ def flatten(expr: Selector) -> Selector:
 
     for name in lit_children:
         new_children.append(Step(Key(name, lit_children[name])))
+    if len(new_children) == 1:
+        return new_children[0]
     return Expr(expr.op, new_children)

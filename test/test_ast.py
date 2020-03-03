@@ -26,8 +26,7 @@ def test_flatten_mixed():
     assert str(flatten(parse_expr(sel))) == "(AND (OR a b c) c d (OR (AND f g) d e))"
 
 
-def test_flatten_consolidated_leaf_conjunctions():
+def test_flatten_single_key_leaf_disjunctions():
     sel = "(a.x, a.y, a.z) b"
     assert str(parse_expr(sel)) == "(AND (OR a.x a.y a.z) b)"
-    # TODO what's happening here? create an example where this matters...
-    assert str(flatten(parse_expr(sel))) == "(AND (OR (a.x, a.y, a.z)) b)"
+    assert str(flatten(parse_expr(sel))) == "(AND (a.x, a.y, a.z) b)"
