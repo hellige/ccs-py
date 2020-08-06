@@ -26,7 +26,7 @@ class Clause:
         return Clause(self.literals.union(other.literals))
 
     def specificity(self) -> Specificity:
-        return sum((l.specificity for l in self.literals), Specificity(0, 0, 0, 0))
+        return sum((lit.specificity for lit in self.literals), Specificity(0, 0, 0, 0))
 
     def __str__(self) -> str:
         return " ".join(map(str, sorted(self.literals)))
