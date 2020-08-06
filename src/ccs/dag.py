@@ -188,8 +188,8 @@ def build(expr, constructor, base_nodes, these_nodes):
         return these_nodes[expr]
     if len(expr) == 2:
         node = constructor()
-        for l in expr.elements():
-            base_nodes[l].children.append(node)
+        for el in expr.elements():
+            base_nodes[el].children.append(node)
             node.add_link()
         return node
 
@@ -200,8 +200,8 @@ def build(expr, constructor, base_nodes, these_nodes):
             assert len(c) < len(expr), "exact equality handled above"
             rank = Rank(c)
             sizes.append(rank)
-            for l in c.elements():
-                ranks[l].append(rank)
+            for el in c.elements():
+                ranks[el].append(rank)
     heapq.heapify(sizes)
     covered = set()
     node = constructor()
@@ -210,17 +210,17 @@ def build(expr, constructor, base_nodes, these_nodes):
         best = heapq.heappop(sizes).elem
         these_nodes[best].children.append(node)
         node.add_link()
-        for l in best.elements():
-            if l not in covered:
-                covered.add(l)
-                for rank in ranks[l]:
+        for el in best.elements():
+            if el not in covered:
+                covered.add(el)
+                for rank in ranks[el]:
                     rank.weight -= 1
         # TODO this repeated linear heapify is no good, we need a heap that allows us to
         # shuffle elements up and down as needed
         heapq.heapify(sizes)
 
-    for l in expr.elements() - covered:
-        base_nodes[l].children.append(node)
+    for el in expr.elements() - covered:
+        base_nodes[el].children.append(node)
         node.add_link()
 
     return node
@@ -244,7 +244,7 @@ def build_dag(rule_tree_nodes):
     all_clauses = [
         c for f in sorted_formulae for c in f.formula.clauses | f.formula.shared
     ]
-    for lit in {l for c in all_clauses for l in c.elements()}:
+    for lit in {lit for c in all_clauses for lit in c.elements()}:
         lit_nodes[lit] = add_literal(dag, lit)
     clause_nodes = {}
     for clause in sorted(all_clauses):
