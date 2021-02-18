@@ -80,7 +80,7 @@ succ("env.foo/* some comment */{ }")
 succ("a.b: @constrain a.c")
 
 
-# interplation tests
+# interpolation tests
 succ("a = 'hi'")
 fail("a = 'hi")
 fail("a = 'hi\\")
