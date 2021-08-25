@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/hellige/ccs-py.svg?branch=master)](https://travis-ci.org/hellige/ccs-py)
+[![Build Status](https://github.com/hellige/ccs-py/actions/workflows/ci.yml/badge.svg)](https://github.com/hellige/ccs-py/actions?workflow=CI)
 
 CCS for Python
 ==============
