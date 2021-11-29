@@ -119,6 +119,9 @@ class PropDef:
     def add_to(self, build_context):
         build_context.add_property(self.name, self.value, self.origin, self.override)
 
+    def resolve_imports(self, *args) -> bool:
+        return True
+
 
 class Constraint:
     """AST node for @constrain."""
@@ -131,6 +134,9 @@ class Constraint:
 
     def add_to(self, build_context):
         build_context.add_constraint(self.key)
+
+    def resolve_imports(self, *args) -> bool:
+        return True
 
 
 class Nested:
