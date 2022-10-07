@@ -13,4 +13,4 @@
 /src/ccs/_version.py
 
 # venv stuff
-/.env
+/.venv
