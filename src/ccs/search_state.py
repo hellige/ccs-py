@@ -54,13 +54,6 @@ class Context:
         props=m(),
         poisoned=None,
     ):
-        if len(props) == 0:
-            # This would be better handled by constructor delegation, but that's not as easy in Python
-            root_nodes = dict(dag.prop_node.props)
-            props = _update_props(
-                props, root_nodes.items(), prop_accumulator, ROOT_SPEC
-            )
-
         self.dag = dag
         self.tallies = tallies
         self.or_specificities = or_specificities
@@ -68,8 +61,15 @@ class Context:
         self.props = props
         self.poisoned = poisoned
 
+        if len(props) == 0:
+            for field, new_value in self._augment(deque(), activate_root=True).items():
+                setattr(self, field, new_value)
+
     def augment(self, key, value=None):
-        keys = deque([Key(key, {value})])
+        changes = self._augment(deque([Key(key, {value})]))
+        return Context(self.dag, self.prop_accumulator, **changes)
+
+    def _augment(self, keys, *, activate_root=False) -> dict:
         tallies = self.tallies
         or_specificities = self.or_specificities
         poisoned = self.poisoned
@@ -93,6 +93,8 @@ class Context:
         def activate_or(n, propagated_specificity):
             nonlocal or_specificities
             prev_spec = or_specificities.get(n, Specificity(0, 0, 0, 0))
+            if propagated_specificity is None:
+                return prev_spec
             if propagated_specificity > prev_spec:
                 or_specificities = or_specificities.set(n, propagated_specificity)
                 return propagated_specificity
@@ -158,11 +160,17 @@ class Context:
                                 poison(node)
                         # TODO and of course dually negative matches too
 
+        if activate_root:
+            keys = deque(self.dag.prop_node.constraints) + keys
+            activate(self.dag.prop_node)
         while keys:
             key = keys.popleft()
             assert len(key.values) < 2
             match_step(key.name, next(iter(key.values), None))
 
-        return Context(
-            self.dag, self.prop_accumulator, tallies, or_specificities, props, poisoned
-        )
+        return {
+            "tallies": tallies,
+            "or_specificities": or_specificities,
+            "props": props,
+            "poisoned": poisoned,
+        }

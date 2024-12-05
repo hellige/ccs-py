@@ -183,7 +183,10 @@ class Rank:
 
 
 def build(expr, constructor, base_nodes, these_nodes):
-    # TODO need a special case for the empty formula
+    if expr.is_empty():
+        pass
+        # TODO need a special case for the empty formula
+
     if len(expr) == 1:
         return base_nodes[expr.first()]
 

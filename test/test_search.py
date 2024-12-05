@@ -27,6 +27,11 @@ def test_with_root_node():
     baz = outerbaz
     foobar = outerfoobar
     noothers = val
+    
+    z.underconstraint {
+        c = success
+    }
+    @constrain z.underconstraint
     """
 
     root = RuleTreeNode()
@@ -50,3 +55,5 @@ def test_with_root_node():
     assert get_value(in_cd, "x") == "y"
 
     assert get_value(in_cd, "noothers") == "val"
+
+    assert get_value(ctx, "c") == "success"
