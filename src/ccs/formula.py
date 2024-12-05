@@ -10,6 +10,9 @@ class Clause:
     def __init__(self, lits: Iterable[Key]) -> None:
         self.literals = frozenset(lits)
 
+    def is_empty(self) -> bool:
+        return len(self.literals) == 0
+
     def first(self) -> Key:
         return next(iter(self.literals))
 
@@ -61,6 +64,9 @@ class Formula:
     ) -> None:
         self.clauses = frozenset(clauses)
         self.shared = frozenset(shared)
+
+    def is_empty(self) -> bool:
+        return self.first().is_empty() and len(self.shared) == 0
 
     def first(self) -> Clause:
         return next(iter(self.clauses))

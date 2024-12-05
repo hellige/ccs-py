@@ -17,6 +17,7 @@ class Specificity(
         )
 
 
+ROOT_SPEC = Specificity(0, 0, 0, 0)
 POS_LIT_SPEC = Specificity(0, 1, 0, 0)
 WILDCARD_SPEC = Specificity(0, 0, 0, 1)
 
@@ -149,10 +150,12 @@ class DagStats:
 class Dag:
     def __init__(self):
         self.children = defaultdict(LiteralMatcher)
+        self.prop_node = OrNode()
 
     def stats(self):
         stats = DagStats()
         visited = set()
+        self.prop_node.accumulate_stats(stats, visited)
         for _, matcher in self.children.items():
             stats.literals += 1
             if matcher.wildcard:
@@ -234,7 +237,6 @@ def add_literal(dag, lit):
     return node
 
 
-# TODO handle rule_tree_node with empty formula by adding props as root-level props to dag!
 def build_dag(rule_tree_nodes):
     dag = Dag()
     lit_nodes = {}
@@ -253,6 +255,10 @@ def build_dag(rule_tree_nodes):
         )
     form_nodes = {}
     for rule in sorted_formulae:
+        if rule.formula.is_empty():
+            dag.prop_node.props += rule.props
+            dag.prop_node.constraints += rule.constraints
+
         node = build(rule.formula, lambda: OrNode(), clause_nodes, form_nodes)
         node.props += rule.props
         node.constraints += rule.constraints

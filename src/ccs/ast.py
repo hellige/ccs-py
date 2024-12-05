@@ -63,8 +63,7 @@ class AstNode(ABC):
     """Base class for AST nodes for rules."""
 
     @abstractmethod
-    def add_to(self, build_context) -> None:
-        ...
+    def add_to(self, build_context) -> None: ...
 
     def resolve_imports(self, import_resolver, parser, in_progress) -> bool:
         return True

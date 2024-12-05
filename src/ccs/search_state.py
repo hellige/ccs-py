@@ -2,7 +2,7 @@ from collections import deque
 from pyrsistent import m, s
 import pyrsistent
 
-from ccs.dag import AndNode, Key, Specificity
+from ccs.dag import AndNode, Key, Specificity, ROOT_SPEC
 
 
 # TODO really this should probably be a map from value to specificity, where only the highest specificity
@@ -34,6 +34,16 @@ class MaxAccumulator:
         return repr(pyrsistent.thaw(self.values))
 
 
+def _update_props(props, new_props, prop_accumulator, activation_specificity):
+    for name, prop_val in new_props:
+        prop_vals = props.get(name, prop_accumulator())
+        prop_specificity = (
+            Specificity(prop_val.override_level, 0, 0, 0) + activation_specificity
+        )
+        props = props.set(name, prop_vals.accum(prop_val, prop_specificity))
+    return props
+
+
 class Context:
     def __init__(
         self,
@@ -44,11 +54,18 @@ class Context:
         props=m(),
         poisoned=None,
     ):
+        if len(props) == 0:
+            # This would be better handled by constructor delegation, but that's not as easy in Python
+            root_nodes = dict(dag.prop_node.props)
+            props = _update_props(
+                props, root_nodes.items(), prop_accumulator, ROOT_SPEC
+            )
+
         self.dag = dag
         self.tallies = tallies
         self.or_specificities = or_specificities
         self.prop_accumulator = prop_accumulator
-        self.props = props  # TODO add all root-level props from dag!
+        self.props = props
         self.poisoned = poisoned
 
     def augment(self, key, value=None):
@@ -89,13 +106,9 @@ class Context:
             if activation_specificity:
                 for constraint in n.constraints:
                     keys.append(constraint)
-                for name, prop_val in n.props:
-                    prop_vals = props.get(name, self.prop_accumulator())
-                    prop_specificity = (
-                        Specificity(prop_val.override_level, 0, 0, 0)
-                        + activation_specificity
-                    )
-                    props = props.set(name, prop_vals.accum(prop_val, prop_specificity))
+                props = _update_props(
+                    props, n.props, self.prop_accumulator, activation_specificity
+                )
                 for n in n.children:
                     activate(n, activation_specificity)
 
