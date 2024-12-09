@@ -1,8 +1,18 @@
 from collections import deque
+from collections.abc import Callable
+from typing import Any, TypeVar, Optional, TextIO
+
 from pyrsistent import m, s
 import pyrsistent
 
-from ccs.dag import AndNode, Key, Specificity, ROOT_SPEC
+from ccs.ast import ImportResolver
+from ccs.dag import AndNode, Key, Specificity, ROOT_SPEC, build_dag
+from ccs.error import EmptyPropertyError, AmbiguousPropertyError, MissingPropertyError
+from ccs.parser import Parser
+from ccs.property import Property
+from ccs.rule_tree import RuleTreeNode
+
+T = TypeVar("T")
 
 
 # TODO really this should probably be a map from value to specificity, where only the highest specificity
@@ -34,17 +44,25 @@ class MaxAccumulator:
         return repr(pyrsistent.thaw(self.values))
 
 
-def _update_props(props, new_props, prop_accumulator, activation_specificity):
-    for name, prop_val in new_props:
-        prop_vals = props.get(name, prop_accumulator())
-        prop_specificity = (
-            Specificity(prop_val.override_level, 0, 0, 0) + activation_specificity
-        )
-        props = props.set(name, prop_vals.accum(prop_val, prop_specificity))
-    return props
-
-
 class Context:
+    @classmethod
+    def from_ccs_stream(
+        cls,
+        stream: TextIO,
+        filename: str,
+        import_resolver: Optional[ImportResolver] = None,
+    ) -> "Context":
+        parser = Parser()
+        if import_resolver is not None:
+            rules = parser.parse_ccs_stream(stream, filename, import_resolver, [])
+        else:
+            rules = parser.parse(stream, filename)
+
+        root = RuleTreeNode()
+        rules.add_to(root)
+        dag = build_dag(root)
+        return Context(dag)
+
     def __init__(
         self,
         dag,
@@ -174,3 +192,45 @@ class Context:
             "props": props,
             "poisoned": poisoned,
         }
+
+    def get_single_property(self, prop: str) -> Property:
+        prop_value = self.props.get(prop, None)
+        if prop_value is None:
+            raise MissingPropertyError(f"Invalid property: {prop}")
+
+        values = list(prop_value.values)
+        if len(values) == 0:
+            raise EmptyPropertyError(f"Property {prop} has no values")
+        if len(values) > 1:
+            raise AmbiguousPropertyError(
+                f"Property {prop} has too many values: {values}"
+            )
+
+        return values[0]
+
+    def get_single_value(
+        self, prop: str, *, cast: Optional[Callable[[Any], T]] = None
+    ) -> T:
+        value = self.get_single_property(prop).value
+        if cast is not None:
+            return cast(value)
+        else:
+            return value
+
+    def try_get_single_value(
+        self, prop: str, default: T, *, cast: Optional[Callable[[Any], T]] = None
+    ) -> T:
+        try:
+            return self.get_single_value(prop, cast=cast)
+        except MissingPropertyError:
+            return default
+
+
+def _update_props(props, new_props, prop_accumulator, activation_specificity):
+    for name, prop_val in new_props:
+        prop_vals = props.get(name, prop_accumulator())
+        prop_specificity = (
+            Specificity(prop_val.override_level, 0, 0, 0) + activation_specificity
+        )
+        props = props.set(name, prop_vals.accum(prop_val, prop_specificity))
+    return props
