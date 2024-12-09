@@ -36,8 +36,8 @@ class Key:
         if len(self.values) > 1:
             val_strs = (f"{self.name}.{val}" for val in sorted(self.values))
             return f"({', '.join(val_strs)})"
-        elif len(self.values) == 1:
-            return f"{self.name}.{next(iter(self.values))}"
+        elif len(self.values) == 1 and (value := next(iter(self.values))) is not None:
+            return f"{self.name}.{value}"
         return self.name
 
     def __eq__(self, other):

@@ -1,8 +1,8 @@
 from collections import deque
 from collections.abc import Callable
-from typing import Any, TypeVar, Optional, TextIO
+from typing import Any, TypeVar, Optional, TextIO, Protocol
 
-from pyrsistent import m, s
+from pyrsistent import m, s, dq
 import pyrsistent
 
 from ccs.ast import ImportResolver
@@ -44,6 +44,10 @@ class MaxAccumulator:
         return repr(pyrsistent.thaw(self.values))
 
 
+class PropertyTracer(Protocol):
+    def __call__(self, format_str: str, *args: Any) -> None: ...
+
+
 class Context:
     @classmethod
     def from_ccs_stream(
@@ -51,6 +55,8 @@ class Context:
         stream: TextIO,
         filename: str,
         import_resolver: Optional[ImportResolver] = None,
+        *,
+        trace_properties: Optional[PropertyTracer] = None,
     ) -> "Context":
         parser = Parser()
         if import_resolver is not None:
@@ -61,7 +67,7 @@ class Context:
         root = RuleTreeNode()
         rules.add_to(root)
         dag = build_dag(root)
-        return Context(dag)
+        return Context(dag, trace_properties=trace_properties)
 
     def __init__(
         self,
@@ -71,6 +77,9 @@ class Context:
         or_specificities=m(),
         props=m(),
         poisoned=None,
+        *,
+        debug_location=None,
+        trace_properties: Optional[PropertyTracer] = None,
     ):
         self.dag = dag
         self.tallies = tallies
@@ -78,14 +87,23 @@ class Context:
         self.prop_accumulator = prop_accumulator
         self.props = props
         self.poisoned = poisoned
+        self.debug_location = debug_location if debug_location is not None else dq()
+        self.trace_properties = trace_properties
 
         if len(props) == 0:
             for field, new_value in self._augment(deque(), activate_root=True).items():
                 setattr(self, field, new_value)
 
     def augment(self, key, value=None):
-        changes = self._augment(deque([Key(key, {value})]))
-        return Context(self.dag, self.prop_accumulator, **changes)
+        key = Key(key, {value})
+        changes = self._augment(deque([key]))
+        return Context(
+            self.dag,
+            self.prop_accumulator,
+            **changes,
+            debug_location=self.debug_location.append(key),
+            trace_properties=self.trace_properties,
+        )
 
     def _augment(self, keys, *, activate_root=False) -> dict:
         tallies = self.tallies
@@ -181,6 +199,7 @@ class Context:
         if activate_root:
             keys = deque(self.dag.prop_node.constraints) + keys
             activate(self.dag.prop_node)
+
         while keys:
             key = keys.popleft()
             assert len(key.values) < 2
@@ -194,19 +213,31 @@ class Context:
         }
 
     def get_single_property(self, prop: str) -> Property:
-        prop_value = self.props.get(prop, None)
-        if prop_value is None:
+        contenders = self.props.get(prop, None)
+        if contenders is None:
             raise MissingPropertyError(f"Invalid property: {prop}")
 
-        values = list(prop_value.values)
-        if len(values) == 0:
+        properties = list(contenders.values)
+        if len(properties) == 0:
             raise EmptyPropertyError(f"Property {prop} has no values")
-        if len(values) > 1:
+        if len(properties) > 1:
             raise AmbiguousPropertyError(
-                f"Property {prop} has too many values: {values}"
+                f"Property {prop} has too many values: {properties}"
             )
 
-        return values[0]
+        match = properties[0]
+        if self.trace_properties is not None:
+            if len(self.debug_location) == 0:
+                location_str = "<root>"
+            else:
+                location_str = " > ".join([str(key) for key in self.debug_location])
+            self.trace_properties(
+                "Found property: %s = %s\n\tin context: [%s]",
+                prop,
+                match.value,
+                location_str,
+            )
+        return match
 
     def get_single_value(
         self, prop: str, *, cast: Optional[Callable[[Any], T]] = None

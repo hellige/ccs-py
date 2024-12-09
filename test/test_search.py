@@ -1,3 +1,4 @@
+import re
 from io import StringIO
 
 
@@ -17,8 +18,8 @@ def expect_exception(work, expected):
         raise AssertionError(f"Expected exception {expected} did not happen")
 
 
-def load_context(expr: str) -> Context:
-    return Context.from_ccs_stream(StringIO(expr), "-")
+def load_context(expr: str, *args, **kwargs) -> Context:
+    return Context.from_ccs_stream(StringIO(expr), "-", *args, **kwargs)
 
 
 def test_get_single_value():
@@ -57,12 +58,20 @@ def test_with_root_node():
         baz = outerbaz
         foobar = outerfoobar
         noothers = val
+        
+        multi {
+            x = failure
+            level {
+                x = success
+            }
+        }
 
         z.underconstraint {
             c = success
         }
         @constrain z.underconstraint
         c = failure
+        
         """
     )
 
@@ -82,3 +91,41 @@ def test_with_root_node():
     assert in_cd.get_single_value("noothers") == "val"
 
     assert ctx.get_single_value("c") == "success"
+
+    lvl1 = ctx.augment("multi")
+    lvl2 = lvl1.augment("level")
+    assert lvl2.get_single_value("x")
+
+
+def test_trace_properties():
+    logged = []
+
+    def debug_trace(fmt, *args):
+        logged.append(fmt % args)
+
+    ctx = load_context(
+        """
+        a {
+            b {
+                c = "42"
+            }
+        }
+        c = 101
+        """,
+        trace_properties=debug_trace,
+    )
+
+    assert ctx.get_single_value("c", cast=int) == 101
+    assert re.match(r".*c = 101.*\n.*\[<root>\]", logged[-1], re.MULTILINE)
+
+    in_a = ctx.augment("a")
+    assert in_a.get_single_value("c", cast=int) == 101
+    assert re.match(r".*c = 101.*\n.*\[a\]", logged[-1], re.MULTILINE)
+
+    in_b = ctx.augment("b")
+    assert in_b.get_single_value("c", cast=int) == 101
+    assert re.match(r".*c = 101.*\n.*\[b\]", logged[-1], re.MULTILINE)
+
+    in_ab = in_a.augment("b")
+    assert in_ab.get_single_value("c", cast=int) == 42
+    assert re.match(r".*c = 42.*\n.*\[a > b\]", logged[-1], re.MULTILINE)
