@@ -1,6 +1,6 @@
 import re
 from io import StringIO
-
+import pytest
 
 from ccs.dag import build_dag
 from ccs.error import AmbiguousPropertyError, MissingPropertyError
@@ -33,12 +33,16 @@ def test_get_single_value():
         """
     )
 
-    expect_exception(lambda: ctx.get_single_value("a"), AmbiguousPropertyError)
-    expect_exception(lambda: ctx.get_single_value("b"), MissingPropertyError)
+    with pytest.raises(AmbiguousPropertyError):
+        ctx.get_single_value("a")
+
+    with pytest.raises(MissingPropertyError):
+        ctx.get_single_value("b")
 
     assert 4.3 == ctx.get_single_value("c", cast=float)
 
-    expect_exception(lambda: ctx.get_single_value("d", cast=float), ValueError)
+    with pytest.raises(ValueError):
+        ctx.get_single_value("d", cast=float)
 
 
 def test_with_root_node():

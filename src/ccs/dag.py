@@ -17,7 +17,6 @@ class Specificity(
         )
 
 
-ROOT_SPEC = Specificity(0, 0, 0, 0)
 POS_LIT_SPEC = Specificity(0, 1, 0, 0)
 WILDCARD_SPEC = Specificity(0, 0, 0, 1)
 
@@ -183,9 +182,7 @@ class Rank:
 
 
 def build(expr, constructor, base_nodes, these_nodes):
-    if expr.is_empty():
-        pass
-        # TODO need a special case for the empty formula
+    assert not expr.is_empty()
 
     if len(expr) == 1:
         return base_nodes[expr.first()]
@@ -253,17 +250,19 @@ def build_dag(rule_tree_nodes):
         lit_nodes[lit] = add_literal(dag, lit)
     clause_nodes = {}
     for clause in sorted(all_clauses):
-        clause_nodes[clause] = build(
-            clause, lambda: AndNode(clause.specificity()), lit_nodes, clause_nodes
-        )
+        if not clause.is_empty():
+            clause_nodes[clause] = build(
+                clause, lambda: AndNode(clause.specificity()), lit_nodes, clause_nodes
+            )
     form_nodes = {}
     for rule in sorted_formulae:
         if rule.formula.is_empty():
             dag.prop_node.props += rule.props
             dag.prop_node.constraints += rule.constraints
+        else:
+            node = build(rule.formula, lambda: OrNode(), clause_nodes, form_nodes)
+            node.props += rule.props
+            node.constraints += rule.constraints
+            form_nodes[rule.formula] = node
 
-        node = build(rule.formula, lambda: OrNode(), clause_nodes, form_nodes)
-        node.props += rule.props
-        node.constraints += rule.constraints
-        form_nodes[rule.formula] = node
     return dag

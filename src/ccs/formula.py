@@ -66,7 +66,7 @@ class Formula:
         self.shared = frozenset(shared)
 
     def is_empty(self) -> bool:
-        return self.first().is_empty() and len(self.shared) == 0
+        return self.first().is_empty()
 
     def first(self) -> Clause:
         return next(iter(self.clauses))

@@ -6,7 +6,7 @@ from pyrsistent import m, s, dq
 import pyrsistent
 
 from ccs.ast import ImportResolver
-from ccs.dag import AndNode, Key, Specificity, ROOT_SPEC, build_dag
+from ccs.dag import AndNode, Key, Specificity, build_dag
 from ccs.error import EmptyPropertyError, AmbiguousPropertyError, MissingPropertyError
 from ccs.parser import Parser
 from ccs.property import Property
