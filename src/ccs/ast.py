@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from enum import Enum
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Protocol, TextIO
 
 from ccs.dag import Key
 
@@ -26,6 +26,10 @@ class Op(Enum):
 
 class Selector(ABC):
     """Base class for AST nodes representing selector expressions."""
+
+
+class ImportResolver(Protocol):
+    def resolve(self, location: str) -> TextIO: ...
 
 
 class Expr(Selector):
@@ -63,10 +67,11 @@ class AstNode(ABC):
     """Base class for AST nodes for rules."""
 
     @abstractmethod
-    def add_to(self, build_context) -> None:
-        ...
+    def add_to(self, build_context) -> None: ...
 
-    def resolve_imports(self, import_resolver, parser, in_progress) -> bool:
+    def resolve_imports(
+        self, import_resolver: ImportResolver, parser, in_progress
+    ) -> bool:
         return True
 
 
@@ -84,7 +89,9 @@ class Import(AstNode):
         assert self.ast
         self.ast.add_to(build_context)
 
-    def resolve_imports(self, import_resolver, parser, in_progress) -> bool:
+    def resolve_imports(
+        self, import_resolver: ImportResolver, parser, in_progress
+    ) -> bool:
         if self.location in in_progress:
             # TODO logger
             print(f"Circular import detected involving '{self.location}'")

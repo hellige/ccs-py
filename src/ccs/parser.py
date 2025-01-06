@@ -5,6 +5,7 @@ import re
 from ccs import ast
 from ccs import dag
 from ccs import stringval
+from ccs.ast import ImportResolver
 
 
 class ParseError(Exception):
@@ -534,7 +535,7 @@ class ParserImpl:
 
 
 class Parser:
-    def load_ccs_stream(self, stream, filename, dag, import_resolver):
+    def load_ccs_stream(self, stream, filename, dag, import_resolver: ImportResolver):
         rule = self.parse_ccs_stream(stream, filename, import_resolver, [])
         if not rule:
             return
@@ -542,7 +543,9 @@ class Parser:
         # everything parsed, no errors. now it's safe to modify the dag...
         rule.add_to(dag.build_context())
 
-    def parse_ccs_stream(self, stream, filename, import_resolver, in_progress):
+    def parse_ccs_stream(
+        self, stream, filename, import_resolver: ImportResolver, in_progress
+    ):
         try:
             rule = ParserImpl(filename, stream).parse_ruleset()
             if not rule.resolve_imports(import_resolver, self, in_progress):

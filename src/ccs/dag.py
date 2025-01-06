@@ -35,8 +35,8 @@ class Key:
         if len(self.values) > 1:
             val_strs = (f"{self.name}.{val}" for val in sorted(self.values))
             return f"({', '.join(val_strs)})"
-        elif len(self.values) == 1:
-            return f"{self.name}.{next(iter(self.values))}"
+        elif len(self.values) == 1 and (value := next(iter(self.values))) is not None:
+            return f"{self.name}.{value}"
         return self.name
 
     def __eq__(self, other):
@@ -149,10 +149,12 @@ class DagStats:
 class Dag:
     def __init__(self):
         self.children = defaultdict(LiteralMatcher)
+        self.prop_node = OrNode()
 
     def stats(self):
         stats = DagStats()
         visited = set()
+        self.prop_node.accumulate_stats(stats, visited)
         for _, matcher in self.children.items():
             stats.literals += 1
             if matcher.wildcard:
@@ -180,7 +182,8 @@ class Rank:
 
 
 def build(expr, constructor, base_nodes, these_nodes):
-    # TODO need a special case for the empty formula
+    assert not expr.is_empty()
+
     if len(expr) == 1:
         return base_nodes[expr.first()]
 
@@ -234,7 +237,6 @@ def add_literal(dag, lit):
     return node
 
 
-# TODO handle rule_tree_node with empty formula by adding props as root-level props to dag!
 def build_dag(rule_tree_nodes):
     dag = Dag()
     lit_nodes = {}
@@ -248,13 +250,19 @@ def build_dag(rule_tree_nodes):
         lit_nodes[lit] = add_literal(dag, lit)
     clause_nodes = {}
     for clause in sorted(all_clauses):
-        clause_nodes[clause] = build(
-            clause, lambda: AndNode(clause.specificity()), lit_nodes, clause_nodes
-        )
+        if not clause.is_empty():
+            clause_nodes[clause] = build(
+                clause, lambda: AndNode(clause.specificity()), lit_nodes, clause_nodes
+            )
     form_nodes = {}
     for rule in sorted_formulae:
-        node = build(rule.formula, lambda: OrNode(), clause_nodes, form_nodes)
-        node.props += rule.props
-        node.constraints += rule.constraints
-        form_nodes[rule.formula] = node
+        if rule.formula.is_empty():
+            dag.prop_node.props += rule.props
+            dag.prop_node.constraints += rule.constraints
+        else:
+            node = build(rule.formula, lambda: OrNode(), clause_nodes, form_nodes)
+            node.props += rule.props
+            node.constraints += rule.constraints
+            form_nodes[rule.formula] = node
+
     return dag
