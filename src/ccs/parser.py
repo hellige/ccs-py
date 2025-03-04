@@ -2,6 +2,8 @@
 
 import re
 
+from typing import Optional
+
 from ccs import ast
 from ccs import dag
 from ccs import stringval
@@ -102,8 +104,9 @@ class Buf:
 
 
 class Lexer:
-    def __init__(self, stream):
+    def __init__(self, stream, env: Optional[dict[str, str]] = None):
         self.stream = Buf(stream)
+        self.env = env
         self.next = self.next_token()
 
     def peek(self):
@@ -245,7 +248,7 @@ class Lexer:
     # handled at the parser level, not at the scanner level. it leads to a lot
     # of ugliness...
     def string(self, first, where):
-        result = stringval.StringVal()
+        result = stringval.StringVal(self.env)
         current = ""  # TODO ok to just use strings and +=???
         while self.stream.peek() != first:
             peek = self.stream.peek()
@@ -344,9 +347,10 @@ class Lexer:
 
 
 class ParserImpl:
-    def __init__(self, filename, stream):
+    def __init__(self, filename, stream, *, env: Optional[dict[str, str]] = None):
         self.filename = filename
-        self.lex = Lexer(stream)
+        self.env = env
+        self.lex = Lexer(stream, env)
         self.cur = None
         self.last = None
         self.advance()
@@ -420,7 +424,7 @@ class ParserImpl:
                 raise ParseError(
                     self.last.location, "Interpolation not allowed in import statements"
                 )
-            rules.append(ast.Import(self.last.string_value.str()))
+            rules.append(ast.Import(self.last.string_value.str(), env=self.env))
             return True
         elif self.cur.type is Token.CONSTRAIN:
             self.advance()
@@ -535,8 +539,16 @@ class ParserImpl:
 
 
 class Parser:
-    def load_ccs_stream(self, stream, filename, dag, import_resolver: ImportResolver):
-        rule = self.parse_ccs_stream(stream, filename, import_resolver, [])
+    def load_ccs_stream(
+        self,
+        stream,
+        filename,
+        dag,
+        import_resolver: ImportResolver,
+        *,
+        env: Optional[dict[str, str]] = None
+    ):
+        rule = self.parse_ccs_stream(stream, filename, import_resolver, [], env=env)
         if not rule:
             return
 
@@ -544,10 +556,16 @@ class Parser:
         rule.add_to(dag.build_context())
 
     def parse_ccs_stream(
-        self, stream, filename, import_resolver: ImportResolver, in_progress
+        self,
+        stream,
+        filename,
+        import_resolver: ImportResolver,
+        in_progress,
+        *,
+        env: Optional[dict[str, str]] = None
     ):
         try:
-            rule = ParserImpl(filename, stream).parse_ruleset()
+            rule = ParserImpl(filename, stream, env=env).parse_ruleset()
             if not rule.resolve_imports(import_resolver, self, in_progress):
                 return None
             return rule
@@ -556,8 +574,8 @@ class Parser:
             print(f"Errors parsing '{filename}': {e}")
             return None
 
-    def parse(self, stream, filename):
-        return ParserImpl(filename, stream).parse_ruleset()
+    def parse(self, stream, filename, *, env: Optional[dict[str, str]] = None):
+        return ParserImpl(filename, stream, env=env).parse_ruleset()
 
-    def parse_selector(self, stream, filename="<none>"):
-        return ParserImpl(filename, stream).parse_selector()
+    def parse_selector(self, stream, filename="<none>", *, env: Optional[dict[str, str]] = None):
+        return ParserImpl(filename, stream, env=env).parse_selector()

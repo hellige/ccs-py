@@ -57,12 +57,13 @@ class Context:
         import_resolver: Optional[ImportResolver] = None,
         *,
         trace_properties: Optional[PropertyTracer] = None,
+        env: Optional[dict[str, str]] = None,
     ) -> "Context":
         parser = Parser()
         if import_resolver is not None:
-            rules = parser.parse_ccs_stream(stream, filename, import_resolver, [])
+            rules = parser.parse_ccs_stream(stream, filename, import_resolver, [], env=env)
         else:
-            rules = parser.parse(stream, filename)
+            rules = parser.parse(stream, filename, env=env)
 
         root = RuleTreeNode()
         rules.add_to(root)

@@ -78,8 +78,9 @@ class AstNode(ABC):
 class Import(AstNode):
     """AST node for @import."""
 
-    def __init__(self, location: str) -> None:
+    def __init__(self, location: str, *, env: dict[str, str]) -> None:
         self.location = location
+        self.env = env
         self.ast: Optional[AstNode] = None
 
     def __str__(self) -> str:
@@ -103,6 +104,7 @@ class Import(AstNode):
                     self.location,
                     import_resolver,
                     in_progress,
+                    env=self.env,
                 )
                 if self.ast:
                     return True

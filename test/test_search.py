@@ -2,6 +2,7 @@ import re
 from io import StringIO
 import pytest
 
+from ccs.ast import ImportResolver
 from ccs.dag import build_dag
 from ccs.error import AmbiguousPropertyError, MissingPropertyError
 from ccs.parser import Parser
@@ -39,10 +40,45 @@ def test_get_single_value():
     with pytest.raises(MissingPropertyError):
         ctx.get_single_value("b")
 
-    assert 4.3 == ctx.get_single_value("c", cast=float)
+    assert ctx.get_single_value("c", cast=float) == 4.3
 
     with pytest.raises(ValueError):
         ctx.get_single_value("d", cast=float)
+
+
+def test_get_from_env():
+    ctx = load_context(
+        """
+        a = '${USER}'
+        """,
+        env={"USER": "NotARealUser"}
+    )
+
+    assert ctx.get_single_value("a") == "NotARealUser"
+
+
+def test_get_from_env_through_import():
+    importable = """
+        imported = '${USER}'
+    """
+
+    class Resolver(ImportResolver):
+        def resolve(self, _location):
+            return StringIO(importable)
+
+    resolver = Resolver()
+
+    ctx = load_context(
+        """
+        @import 'whatever'
+        toplevel = '${USER}'
+        """,
+        resolver,
+        env={"USER": "NotARealUser"}
+    )
+
+    assert ctx.get_single_value("toplevel") == "NotARealUser"
+    assert ctx.get_single_value("imported") == "NotARealUser"
 
 
 def test_with_root_node():

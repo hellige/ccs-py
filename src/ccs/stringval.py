@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 
 class Literal:
@@ -11,23 +12,26 @@ class Literal:
 
 
 class Interpolant:
-    def __init__(self, i):
+    def __init__(self, i, env: dict[str, str]):
         self.is_interpolant = True
         self.i = i
+        self.env = env
 
     def interpolate(self):
-        return os.environ.get(self.i, "")
+        return self.env.get(self.i, "")
 
 
 class StringVal:
-    def __init__(self):
+    def __init__(self, env: Optional[dict[str, str]] = None):
         self.elements = []
+        self.env = env
 
     def add_literal(self, s):
         self.elements.append(Literal(s))
 
     def add_interpolant(self, i):
-        self.elements.append(Interpolant(i))
+        env = self.env if self.env is not None else os.environ
+        self.elements.append(Interpolant(i, env))
 
     def interpolation(self):
         if len(self.elements) > 1:
