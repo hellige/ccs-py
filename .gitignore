@@ -4,13 +4,10 @@
 /dist
 /.eggs
 /.ipynb_checkpoints
-/.mypy_cache
 /.pytest_cache
-/.tox
 /.vscode
 
 /src/ccs_py.egg-info
-/src/ccs/_version.py
 
 # venv stuff
 /.venv

@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ccs-py"
+version = "0.1.0"
+description = "CCS language for config files"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Matt Hellige", email = "matt@immute.net" },
+]
+keywords = ["ccs", "config", "configuration"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+]
+dependencies = ["pyrsistent"]
+
+[project.scripts]
+ccs = "ccs.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/hellige/ccs-py"
+
+[dependency-groups]
+dev = ["pytest", "ty", "ruff"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ccs"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+ignore = ["E701"]

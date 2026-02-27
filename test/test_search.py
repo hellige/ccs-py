@@ -2,10 +2,7 @@ import re
 from io import StringIO
 import pytest
 
-from ccs.dag import build_dag
 from ccs.error import AmbiguousPropertyError, MissingPropertyError
-from ccs.parser import Parser
-from ccs.rule_tree import RuleTreeNode
 from ccs.search_state import Context
 
 

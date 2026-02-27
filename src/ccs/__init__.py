@@ -1,9 +1,9 @@
-from .ast import ImportResolver
+from .ast import ImportResolver as ImportResolver
 from .error import (
-    CcsError,
-    MissingPropertyError,
-    EmptyPropertyError,
-    AmbiguousPropertyError,
+    AmbiguousPropertyError as AmbiguousPropertyError,
+    CcsError as CcsError,
+    EmptyPropertyError as EmptyPropertyError,
+    MissingPropertyError as MissingPropertyError,
 )
-from .property import Property
-from .search_state import Context
+from .property import Property as Property
+from .search_state import Context as Context
