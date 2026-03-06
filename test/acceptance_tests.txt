@@ -1,0 +1,153 @@
+Basic conjunction
+---
+frob = 'nope'
+a b: frob = 'nitz'
+---
+a: frob = nope
+b: frob = nope
+a b: frob = nitz
+b a: frob = nitz
+===
+
+Best before closest
+---
+first.id: test = "correct"
+first second: test = "incorrect"
+---
+first.id second: test = correct
+===
+
+ID match has greater specificity
+---
+second.id: test = "correct"
+first second: test = "incorrect"
+---
+first second.id: test = correct
+===
+
+Tied specificities
+---
+second.class2: test = "foo"
+second.class1: test = "correct"
+---
+first second.class1.class2: test = correct
+===
+
+Complex tie
+---
+bar.class2 : test1 = "incorrect"
+bar.class1 : test1 = "correct"
+bar.class1 foo : test2 = "incorrect 1"
+bar.class2 foo : test2 = "correct"
+bar foo : test2 = "incorrect 2"
+---
+bar.class1.class2: test1 = correct
+bar.class1.class2 foo: test2 = correct
+===
+
+
+
+Constraints at top level
+---
+@constrain a
+test = "wrong"
+a: test = "right"
+---
+test = right
+===
+
+Chained constraints at top level
+---
+@constrain a
+test = "wrong"
+a: @constrain b.c
+b.c: test = "right"
+---
+test = right
+===
+
+Valueless constraint
+---
+a.b: @constrain c
+c: test = "correct"
+---
+a.b: test = correct
+===
+
+Specific vs lowest
+---
+a.b c: test = "correct"
+d: test = "incorrect"
+---
+a.b c d: test = correct
+===
+
+Specific vs lowest 2
+---
+a.b: test = "correct"
+c: test = "incorrect"
+---
+a.b c d: test = correct
+===
+
+Multiple chained constraints and conjunction
+---
+test = "wrong"
+a: @constrain b
+a b: @constrain c
+a b c: test = "right"
+---
+a: test = right
+===
+
+Bogus conflicts
+---
+a: @constrain b
+a: @constrain c
+a: test2 = "right"
+---
+a: test2 = right
+===
+
+Multiple chained constraints at root
+---
+@constrain a
+a: @constrain b
+a b: @constrain c
+a b c: test = "right"
+---
+test = right
+===
+
+Test case from hippo...
+---
+expect = true
+env.a env.b : foo = 123
+env.lab, env.dev {
+  expect = false
+  env.a, env.b, env.c : expect = true
+}
+---
+env.a env.dev: expect = true
+env.dev: expect = false
+env.prod: expect = true
+===
+
+Identical conj and disj
+---
+a b : foo = and
+a, b : foo = or
+---
+a: foo = or
+b: foo = or
+a b: foo = and
+===
+
+Duplicated constraint builds incorrect dag
+---
+b a {}
+a a : foo = here
+---
+a: foo = here
+===
+
