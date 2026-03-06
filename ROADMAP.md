@@ -63,9 +63,16 @@ be useful.
 
 ### Canonical dump
 
-The notebook contains a working canonical dump implementation for diffing
-configurations, but it's described as "terrible and wants a cleanup" and is not
-yet part of the library proper.
+The notebook contains a working canonical dump implementation (`top_sort()`,
+`dump_dag()`) that produces a normalized, diffable view of all properties in a
+DAG. When used with poisoning enabled, it prunes properties that are
+unreachable in the current context — this context-aware normalization and
+diffing is a primary motivation for the closed-world assumption in 2.0.
+
+This should be moved into the library (likely as part of the CLI tool or as a
+standalone API). The notebook code has several self-described rough edges (TODO
+comments about storing normalized formulas in nodes, handling constraints, and
+including origins) but is functionally correct.
 
 ### Origin tracking
 
@@ -83,15 +90,46 @@ Known concerns
 
 These are design areas that need careful attention before building further.
 
-### Poisoning is implemented but not enabled
+### Poisoning: closed-world assumption
 
 The poisoning code in `search_state.py` is fully written (the `poison()`
 function, the `if poisoned is not None` guard in `match_step`), but poisoning
-is never activated because `poisoned` is initialized to `None` and no code path
-sets it to a non-`None` value. The closed-world assumption ("augmenting with
-`a.x` means key `a` has ONLY value `x`") is therefore not enforced. Enabling
-this is the next step — it requires initializing `poisoned` to an empty set
-(e.g., `s()`) and verifying correctness.
+is never activated through the public API. `poisoned` is initialized to `None`
+and neither `from_ccs_stream` nor `augment` sets it. The notebook's
+`ctx_from_file()` can enable it by passing `poisoned=pyrsistent.s()` directly
+to the `Context` constructor.
+
+The closed-world assumption ("augmenting with `a.x` means key `a` has ONLY
+value `x`") is the foundation for two important 2.0 capabilities:
+
+1. **Canonical dump/diff:** The notebook's `dump_dag()` uses poisoning to prune
+   unreachable branches, producing a normalized view of only those properties
+   that could still match in a given context. This is the primary motivation
+   for the closed-world assumption — it enables context-aware configuration
+   diffing. This functionality should be moved from the notebook into the
+   library proper.
+
+2. **Conflict detection:** If a user augments with `env.prod` and later
+   augments with `env.dev`, those are contradictory under the closed-world
+   assumption. With poisoning active, this could be detected (the second
+   augment would try to activate already-poisoned nodes) and surfaced as a
+   warning or error. This is useful for catching configuration bugs.
+
+Poisoning does **not** provide meaningful optimization for normal rule
+matching. Nodes that can never match would simply never complete their tally
+naturally; the only savings would be skipping propagation through children of a
+node that was fully activated and then poisoned by a later augment, which is a
+narrow case. The overhead of maintaining the poisoned set likely outweighs any
+savings for typical configurations.
+
+Poisoning does not change which properties *win* (specificity and source order
+handle that) — it only determines which properties are *reachable*.
+
+**Migration concern:** Existing configurations rely on the open-world
+assumption. Enabling the closed-world assumption is a breaking change.
+Violations need to be detectable so that users can audit and migrate their
+configurations safely. A migration mode that warns on closed-world violations
+without changing behavior would allow incremental adoption.
 
 The interaction between activation, poisoning, and the tally-count trick for
 literal nodes that represent set-valued disjunctions is complex. The comment at
@@ -230,6 +268,5 @@ Python and ported back to C++.
 
 ### Gaps
 
-- No tests for `@context`.
 - No negative-testing for DNF expansion limit.
 - No tests for string interpolation at the search level.
