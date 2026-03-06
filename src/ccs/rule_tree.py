@@ -11,12 +11,13 @@ from ccs.property import Property
 
 
 class RuleTreeNode:
-    def __init__(self, expand_limit=100, formula=Formula([Clause([])])) -> None:
+    def __init__(self, expand_limit=100, formula=Formula([Clause([])]), _counter=None) -> None:
         self.expand_limit = expand_limit
         self.formula = formula
         self.children: List[RuleTreeNode] = []
         self.props: List[object] = []  # TODO this type is clearly temporary
         self.constraints: List[Key] = []
+        self._counter = _counter if _counter is not None else [0]
 
     def __iter__(self):
         yield self
@@ -26,11 +27,16 @@ class RuleTreeNode:
     def traverse(self, selector: Selector) -> "RuleTreeNode":
         dnf = to_dnf(flatten(selector), self.expand_limit)
         formula = expand(self.expand_limit, self.formula, dnf)
-        self.children.append(RuleTreeNode(self.expand_limit, formula))
+        self.children.append(RuleTreeNode(self.expand_limit, formula, self._counter))
         return self.children[-1]
 
+    def _next_property_number(self) -> int:
+        n = self._counter[0]
+        self._counter[0] += 1
+        return n
+
     def add_property(self, name, value, origin, override) -> None:
-        self.props.append((name, Property(value, origin, 1 if override else 0)))
+        self.props.append((name, Property(value, origin, 1 if override else 0, self._next_property_number())))
 
     def add_constraint(self, key: Key) -> None:
         self.constraints.append(key)

@@ -30,8 +30,8 @@ def test_get_single_value():
         """
     )
 
-    with pytest.raises(AmbiguousPropertyError):
-        ctx.get_single_value("a")
+    # source-order tie-breaking: last writer wins
+    assert ctx.get_single_value("a") == "2"
 
     with pytest.raises(MissingPropertyError):
         ctx.get_single_value("b")

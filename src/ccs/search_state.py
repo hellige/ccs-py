@@ -29,6 +29,8 @@ class SetAccumulator:
 
 
 class MaxAccumulator:
+    """Keeps the highest-specificity property, breaking ties by source order (last wins)."""
+
     def __init__(self, specificity=Specificity(0, 0, 0, 0), values=s()):
         self.specificity = specificity
         self.values = values
@@ -37,7 +39,27 @@ class MaxAccumulator:
         if specificity > self.specificity:
             return MaxAccumulator(specificity, s(prop))
         if specificity == self.specificity:
-            return MaxAccumulator(self.specificity, self.values.add(prop))
+            if len(self.values) == 0 or prop.property_number > next(iter(self.values)).property_number:
+                return MaxAccumulator(self.specificity, s(prop))
+            return self
+        return self
+
+    def __repr__(self):
+        return repr(pyrsistent.thaw(self.values))
+
+
+class StrictMaxAccumulator:
+    """Like MaxAccumulator but reports ties as ambiguous instead of resolving by source order."""
+
+    def __init__(self, specificity=Specificity(0, 0, 0, 0), values=s()):
+        self.specificity = specificity
+        self.values = values
+
+    def accum(self, prop, specificity):
+        if specificity > self.specificity:
+            return StrictMaxAccumulator(specificity, s(prop))
+        if specificity == self.specificity:
+            return StrictMaxAccumulator(self.specificity, self.values.add(prop))
         return self
 
     def __repr__(self):
