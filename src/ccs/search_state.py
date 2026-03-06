@@ -78,6 +78,7 @@ class Context:
         filename: str,
         import_resolver: Optional[ImportResolver] = None,
         *,
+        prop_accumulator=None,
         trace_properties: Optional[PropertyTracer] = None,
     ) -> "Context":
         parser = Parser()
@@ -89,7 +90,10 @@ class Context:
         root = RuleTreeNode()
         rules.add_to(root)
         dag = build_dag(root)
-        return Context(dag, trace_properties=trace_properties)
+        kwargs = {"trace_properties": trace_properties}
+        if prop_accumulator is not None:
+            kwargs["prop_accumulator"] = prop_accumulator
+        return Context(dag, **kwargs)
 
     def __init__(
         self,

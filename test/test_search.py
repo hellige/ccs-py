@@ -3,7 +3,7 @@ from io import StringIO
 import pytest
 
 from ccs.error import AmbiguousPropertyError, MissingPropertyError
-from ccs.search_state import Context
+from ccs.search_state import Context, StrictMaxAccumulator
 
 
 def expect_exception(work, expected):
@@ -96,6 +96,19 @@ def test_with_root_node():
     lvl1 = ctx.augment("multi")
     lvl2 = lvl1.augment("level")
     assert lvl2.get_single_value("x")
+
+
+def test_strict_max_accumulator():
+    ctx = load_context(
+        """
+        a = 1
+        a = 2
+        """,
+        prop_accumulator=StrictMaxAccumulator,
+    )
+
+    with pytest.raises(AmbiguousPropertyError):
+        ctx.get_single_value("a")
 
 
 def test_trace_properties():
