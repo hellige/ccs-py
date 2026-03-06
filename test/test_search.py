@@ -111,6 +111,59 @@ def test_strict_max_accumulator():
         ctx.get_single_value("a")
 
 
+def test_import():
+    files = {
+        "main.ccs": '@import "helpers.ccs"\nbaz.bar: frob = "nitz"',
+        "helpers.ccs": 'foo.bar: x = "imported"',
+    }
+
+    class Resolver:
+        def resolve(self, location):
+            return StringIO(files[location])
+
+    ctx = Context.from_ccs_stream(
+        StringIO(files["main.ccs"]), "main.ccs", Resolver()
+    )
+    assert ctx.augment("foo", "bar").get_single_value("x") == "imported"
+    assert ctx.augment("baz", "bar").get_single_value("frob") == "nitz"
+
+
+def test_import_source_order():
+    """Imported properties participate in source-order tie-breaking."""
+    files = {
+        "main.ccs": 'a: test = "first"\n@import "other.ccs"',
+        "other.ccs": 'a: test = "second"',
+    }
+
+    class Resolver:
+        def resolve(self, location):
+            return StringIO(files[location])
+
+    ctx = Context.from_ccs_stream(
+        StringIO(files["main.ccs"]), "main.ccs", Resolver()
+    )
+    # imported file comes after "first", so "second" wins
+    assert ctx.augment("a").get_single_value("test") == "second"
+
+
+def test_import_source_order_sandwich():
+    """Property after import wins over imported property."""
+    files = {
+        "main.ccs": 'a: test = "first"\n@import "other.ccs"\na: test = "third"',
+        "other.ccs": 'a: test = "second"',
+    }
+
+    class Resolver:
+        def resolve(self, location):
+            return StringIO(files[location])
+
+    ctx = Context.from_ccs_stream(
+        StringIO(files["main.ccs"]), "main.ccs", Resolver()
+    )
+    # "third" comes last in source order
+    assert ctx.augment("a").get_single_value("test") == "third"
+
+
 def test_trace_properties():
     logged = []
 
