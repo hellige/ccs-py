@@ -164,6 +164,51 @@ def test_import_source_order_sandwich():
     assert ctx.augment("a").get_single_value("test") == "third"
 
 
+def test_context():
+    ctx = load_context(
+        """
+        @context (a)
+        test = 'in_a'
+        b: test = 'in_ab'
+        """
+    )
+
+    # @context (a) wraps everything under a, so root has no properties
+    with pytest.raises(MissingPropertyError):
+        ctx.get_single_value("test")
+
+    # augmenting with a activates the context
+    in_a = ctx.augment("a")
+    assert in_a.get_single_value("test") == "in_a"
+
+    # further augmentation works within the context
+    in_ab = in_a.augment("b")
+    assert in_ab.get_single_value("test") == "in_ab"
+
+
+def test_context_independence():
+    """Augmenting one branch does not affect sibling branches."""
+    ctx = load_context(
+        """
+        a { x = 'in_a' }
+        b { x = 'in_b' }
+        """
+    )
+
+    branch_a = ctx.augment("a")
+    branch_b = ctx.augment("b")
+    assert branch_a.get_single_value("x") == "in_a"
+    assert branch_b.get_single_value("x") == "in_b"
+
+    # augmenting branch_a further doesn't affect branch_b
+    branch_a.augment("b")
+    assert branch_b.get_single_value("x") == "in_b"
+
+    # original context is also unchanged
+    with pytest.raises(MissingPropertyError):
+        ctx.get_single_value("x")
+
+
 def test_trace_properties():
     logged = []
 

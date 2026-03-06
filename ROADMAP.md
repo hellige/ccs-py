@@ -83,15 +83,22 @@ Known concerns
 
 These are design areas that need careful attention before building further.
 
-### Poisoning correctness
+### Poisoning is implemented but not enabled
 
-The poisoning mechanism in `search_state.py` is the most subtle part of the
-matching algorithm. The interaction between activation, poisoning, and the
-tally-count trick for literal nodes that represent set-valued disjunctions is
-complex. The comment at `search_state.py:160` ("this is starting to feel a bit
-too cute and tricky") acknowledges this. Negative matches will add another
-dimension to this same mechanism. This area needs thorough edge-case testing
-and possibly a simpler formulation before building on top of it.
+The poisoning code in `search_state.py` is fully written (the `poison()`
+function, the `if poisoned is not None` guard in `match_step`), but poisoning
+is never activated because `poisoned` is initialized to `None` and no code path
+sets it to a non-`None` value. The closed-world assumption ("augmenting with
+`a.x` means key `a` has ONLY value `x`") is therefore not enforced. Enabling
+this is the next step — it requires initializing `poisoned` to an empty set
+(e.g., `s()`) and verifying correctness.
+
+The interaction between activation, poisoning, and the tally-count trick for
+literal nodes that represent set-valued disjunctions is complex. The comment at
+`search_state.py:160` ("this is starting to feel a bit too cute and tricky")
+acknowledges this. Negative matches will add another dimension to this same
+mechanism. This area needs thorough edge-case testing and possibly a simpler
+formulation before building on top of it.
 
 ### Multi-value key optimization composability
 
@@ -223,11 +230,6 @@ Python and ported back to C++.
 
 ### Gaps
 
-- No tests for `@import` with file resolution.
-- No tests for `@override` semantics in the Python test suite (though covered
-  in the notebook).
-- The C++ `tests.txt` has 24 acceptance test cases that should be ported.
 - No tests for `@context`.
-- No tests for simultaneous constraints (same-step / `/` syntax).
 - No negative-testing for DNF expansion limit.
 - No tests for string interpolation at the search level.

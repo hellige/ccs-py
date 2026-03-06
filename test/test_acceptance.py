@@ -1,9 +1,7 @@
 import pytest
 from io import StringIO
-from collections import deque
 from pathlib import Path
 
-from ccs.dag import Key
 from ccs.search_state import Context
 
 
@@ -38,50 +36,31 @@ def parse_tests(path):
 
 
 def parse_selector(selector_str):
-    """Parse selector string into list of steps.
+    """Parse selector string into a list of (key, value) augment steps.
 
-    Each step is a list of (key, value) pairs to apply simultaneously.
+    Each space-separated token is one augment call. A dot separates
+    key from value: 'a.b' is augment("a", "b"), 'a' is augment("a").
 
     Examples:
-        'a.b'       -> [[('a', 'b')]]
-        'a.b.c'     -> [[('a', 'b'), ('a', 'c')]]
-        'a.b c.d'   -> [[('a', 'b')], [('c', 'd')]]
-        'a.b.c/d.e' -> [[('a', 'b'), ('a', 'c'), ('d', 'e')]]
-        'a'         -> [[('a', None)]]
+        'a.b'     -> [('a', 'b')]
+        'a.b c.d' -> [('a', 'b'), ('c', 'd')]
+        'a'       -> [('a', None)]
     """
     if not selector_str:
         return []
     steps = []
-    for step_str in selector_str.split():
-        step_keys = []
-        for segment in step_str.split("/"):
-            parts = segment.split(".")
-            name = parts[0]
-            values = parts[1:]
-            if values:
-                for v in values:
-                    step_keys.append((name, v))
-            else:
-                step_keys.append((name, None))
-        steps.append(step_keys)
+    for token in selector_str.split():
+        parts = token.split(".", 1)
+        name = parts[0]
+        value = parts[1] if len(parts) > 1 else None
+        steps.append((name, value))
     return steps
 
 
 def apply_selector(ctx, selector_str):
     """Apply parsed selector steps to a Context, return augmented Context."""
-    for step_keys in parse_selector(selector_str):
-        if len(step_keys) == 1:
-            name, value = step_keys[0]
-            ctx = ctx.augment(name, value)
-        else:
-            keys = deque(Key(name, {value}) for name, value in step_keys)
-            changes = ctx._augment(keys)
-            ctx = Context(
-                ctx.dag,
-                ctx.prop_accumulator,
-                **changes,
-                trace_properties=ctx.trace_properties,
-            )
+    for name, value in parse_selector(selector_str):
+        ctx = ctx.augment(name, value)
     return ctx
 
 
