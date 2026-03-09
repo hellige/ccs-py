@@ -57,22 +57,32 @@ values, hex integers as ints).
 
 ### CLI tool
 
-`ccs/cli/__init__.py` just prints "Not yet implemented". The C++ version has
-no CLI either, but a tool for loading, validating, and dumping CCS files would
-be useful.
+The `ccs` CLI has three subcommands:
+
+- `ccs query` — Query property values from a CCS file, with context and
+  optional property filtering. Shows all set properties when none are
+  specified.
+- `ccs dump` — Canonical dump of rules, with context and optional property
+  name filtering. Uses poisoning (closed-world assumption) so the dump
+  reflects the current context.
+- `ccs shell` — Interactive REPL for exploring CCS configs: incremental
+  context building, property queries, canonical dump, context suggestions,
+  and bookmarks. Uses `prompt_toolkit` for tab completion.
+
+Context specs across all commands use the real CCS lexer, supporting quoted
+identifiers and multiple steps per `-c` flag.
 
 ### Canonical dump
 
-The notebook contains a working canonical dump implementation (`top_sort()`,
-`dump_dag()`) that produces a normalized, diffable view of all properties in a
-DAG. When used with poisoning enabled, it prunes properties that are
-unreachable in the current context — this context-aware normalization and
-diffing is a primary motivation for the closed-world assumption in 2.0.
+The canonical dump (`top_sort()`, `combine()`, `dump_dag()`) has been extracted
+from the notebook into `ccs.dump`. It produces a normalized, diffable view of
+all properties in a DAG. When used with poisoning enabled, it prunes properties
+that are unreachable in the current context — this context-aware normalization
+and diffing is a primary motivation for the closed-world assumption in 2.0.
 
-This should be moved into the library (likely as part of the CLI tool or as a
-standalone API). The notebook code has several self-described rough edges (TODO
-comments about storing normalized formulas in nodes, handling constraints, and
-including origins) but is functionally correct.
+The code has several self-described rough edges (TODO comments about storing
+normalized formulas in nodes, handling constraints) but is functionally
+correct.
 
 ### Origin tracking
 
@@ -93,21 +103,20 @@ These are design areas that need careful attention before building further.
 ### Poisoning: closed-world assumption
 
 The poisoning code in `search_state.py` is fully written (the `poison()`
-function, the `if poisoned is not None` guard in `match_step`), but poisoning
-is never activated through the public API. `poisoned` is initialized to `None`
-and neither `from_ccs_stream` nor `augment` sets it. The notebook's
-`ctx_from_file()` can enable it by passing `poisoned=pyrsistent.s()` directly
-to the `Context` constructor.
+function, the `if poisoned is not None` guard in `match_step`). Poisoning is
+activated by setting `ctx.poisoned = pyrsistent.s()` on a root context before
+augmenting. The CLI's `ccs dump` and `ccs shell` commands enable it
+automatically. The core library still defaults to `poisoned=None` (open-world)
+for backward compatibility.
 
 The closed-world assumption ("augmenting with `a.x` means key `a` has ONLY
 value `x`") is the foundation for two important 2.0 capabilities:
 
-1. **Canonical dump/diff:** The notebook's `dump_dag()` uses poisoning to prune
-   unreachable branches, producing a normalized view of only those properties
-   that could still match in a given context. This is the primary motivation
-   for the closed-world assumption — it enables context-aware configuration
-   diffing. This functionality should be moved from the notebook into the
-   library proper.
+1. **Canonical dump/diff:** `dump_dag()` (in `ccs.dump`) uses poisoning to
+   prune unreachable branches, producing a normalized view of only those
+   properties that could still match in a given context. This is the primary
+   motivation for the closed-world assumption — it enables context-aware
+   configuration diffing.
 
 2. **Conflict detection:** If a user augments with `env.prod` and later
    augments with `env.dev`, those are contradictory under the closed-world
@@ -160,13 +169,13 @@ written would be painful.
 
 ### SetAccumulator correctness
 
-The TODO at `search_state.py:19` says "really this should probably be a map
-from value to specificity, where only the highest specificity for a given
-specific value/origin is retained." If the current implementation keeps all
-`(value, specificity)` pairs, it may produce incorrect results when the same
-property is set to the same value at different specificities and a different
-value at an intermediate specificity. This could lead to spurious ambiguity
-errors. Should be investigated and resolved.
+`SetAccumulator` keeps all `(value, specificity)` pairs and now provides a
+`best()` method that applies `MaxAccumulator` tie-breaking logic on demand.
+This allows using `SetAccumulator` everywhere (as the shell does) while still
+resolving single winning values when needed. However, the underlying question
+remains: if the same property is set to the same value at different
+specificities and a different value at an intermediate specificity, this could
+lead to spurious ambiguity errors. Should be investigated and resolved.
 
 
 New features (2.0 only)
@@ -210,9 +219,8 @@ modernization opportunities exist:
 
 ### Build system
 
-- Migrate from `setup.py` to `pyproject.toml` with modern build backend.
-- The `PYTHON_REQUIRES` is set to `~=3.6` and classifiers only list 3.6/3.7.
-  Should target 3.10+ to use modern features.
+- Build system has been migrated to `pyproject.toml` with hatchling backend,
+  targeting Python 3.10+. ✓
 
 ### Type annotations
 
@@ -255,6 +263,7 @@ Current test files:
 | `test_dnf.py` | DNF conversion: basic, CNF expansion, nested AND, sharing, multi-value keys |
 | `test_formula.py` | Formula normalization (subsumption removal) |
 | `test_search.py` | End-to-end: property lookup, ambiguity, casting, tracing, wildcards, constraints |
+| `test_acceptance.py` | Cross-implementation acceptance tests ported from C++ `tests.txt` |
 
 ### Shared acceptance test suite
 
