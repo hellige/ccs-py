@@ -15,14 +15,29 @@ from ccs.rule_tree import RuleTreeNode
 T = TypeVar("T")
 
 
-# TODO really this should probably be a map from value to specificity, where only the highest specificity
-# for a given specific value/origin is retained
 class SetAccumulator:
     def __init__(self, values=s()):
         self.values = values
 
     def accum(self, prop, specificity):
         return SetAccumulator(self.values.add((prop, specificity)))
+
+    def best(self):
+        """Return the winning Property using MaxAccumulator tie-breaking logic.
+
+        Picks the highest specificity, breaking ties by source order (last wins).
+        Returns a list of zero or one Property objects.
+        """
+        best_spec = None
+        best_prop = None
+        for prop, specificity in self.values:
+            if best_spec is None or specificity > best_spec:
+                best_spec = specificity
+                best_prop = prop
+            elif specificity == best_spec:
+                if best_prop is None or prop.property_number > best_prop.property_number:
+                    best_prop = prop
+        return [best_prop] if best_prop is not None else []
 
     def __repr__(self):
         return repr(pyrsistent.thaw(self.values))
@@ -243,7 +258,11 @@ class Context:
         if contenders is None:
             raise MissingPropertyError(f"Invalid property: {prop}")
 
-        properties = list(contenders.values)
+        # TODO this is terrible, accumulator interface should be changed
+        if hasattr(contenders, "best"):
+            properties = contenders.best()
+        else:
+            properties = list(contenders.values)
         if len(properties) == 0:
             raise EmptyPropertyError(f"Property {prop} has no values")
         if len(properties) > 1:
@@ -291,3 +310,34 @@ def _update_props(props, new_props, prop_accumulator, activation_specificity):
         )
         props = props.set(name, prop_vals.accum(prop_val, prop_specificity))
     return props
+
+
+def suggest_context(ctx):
+    """Discover context elements that would activate new properties.
+
+    Returns a list of (key_name, value_or_None, new_property_names) tuples
+    for each context element from the DAG's literal matchers that would add
+    properties not currently set.
+
+    This leverages persistent data structures — each trial augment is cheap
+    and shares structure with the original context.
+    """
+    current_props = set(ctx.props.keys())
+    suggestions = []
+    seen = set()
+    for key in ctx.debug_location:
+        seen.add((key.name, next(iter(key.values), None)))
+    for key_name, matcher in ctx.dag.children.items():
+        for value in sorted(matcher.positive_values.keys()):
+            if (key_name, value) in seen:
+                continue
+            trial = ctx.augment(key_name, value)
+            new_props = set(trial.props.keys()) - current_props
+            if new_props:
+                suggestions.append((key_name, value, new_props))
+        if matcher.wildcard and (key_name, None) not in seen:
+            trial = ctx.augment(key_name)
+            new_props = set(trial.props.keys()) - current_props
+            if new_props:
+                suggestions.append((key_name, None, new_props))
+    return suggestions

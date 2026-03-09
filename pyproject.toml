@@ -29,6 +29,9 @@ classifiers = [
 ]
 dependencies = ["pyrsistent"]
 
+[project.optional-dependencies]
+cli = ["click", "prompt_toolkit"]
+
 [project.scripts]
 ccs = "ccs.cli:main"
 
