@@ -14,7 +14,7 @@ from ccs.error import AmbiguousPropertyError, MissingPropertyError
 
 @cli.command()
 @click.argument("file", type=click.Path(exists=True, dir_okay=False))
-@click.argument("properties", nargs=-1, required=True)
+@click.argument("properties", nargs=-1)
 @click.option(
     "-c", "--context", "contexts", multiple=True,
     help="Context constraint: KEY or KEY.VALUE (repeatable).",
@@ -30,11 +30,15 @@ from ccs.error import AmbiguousPropertyError, MissingPropertyError
 def query(file, properties, contexts, show_all, trace):
     """Query properties from a CCS file.
 
-    Loads FILE, applies context constraints, and prints the requested PROPERTIES.
+    Loads FILE, applies context constraints, and prints the requested
+    PROPERTIES. If no properties are specified, all set properties are shown.
     """
     file_path = Path(file).resolve()
     ctx = load_context(file_path, show_all=show_all, trace=trace)
     ctx = apply_context_specs(ctx, contexts)
+
+    if not properties:
+        properties = sorted(ctx.props.keys())
 
     errors = False
     for prop in properties:

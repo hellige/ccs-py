@@ -75,23 +75,32 @@ def combine(f1, f2):
     assert False, f"what are you trying to do? {type(f1)} {type(f2)}"
 
 
-def dump_dag(ctx, prop_name=None, *, out=sys.stdout):
+def dump_dag(ctx, prop_names=None, *, out=sys.stdout):
     """Print canonical dump of properties visible from a Context.
 
-    If prop_name is given, only rules setting that property are shown.
+    If prop_names is given (a string or iterable of strings), only rules
+    setting those properties are shown.
 
     Each line shows the formula (selector) under which a property is set,
     along with its value, override status, and origin.
     """
+    if isinstance(prop_names, str):
+        prop_names = {prop_names}
+    elif prop_names is not None:
+        prop_names = set(prop_names)
+
     dag = ctx.dag
     poisoned = ctx.poisoned or pyrsistent.s()
     nodes, node_forms = top_sort(dag)
+
+    def _include(prop):
+        return prop_names is None or prop[0] in prop_names
 
     results = []
 
     # Root-level (unconditional) properties from prop_node
     for prop in dag.prop_node.props:
-        if prop_name is None or prop[0] == prop_name:
+        if _include(prop):
             results.append((None, prop))
 
     for node in nodes:
@@ -103,7 +112,7 @@ def dump_dag(ctx, prop_name=None, *, out=sys.stdout):
         if form is None:
             continue
         for prop in node.props:
-            if prop_name is not None and prop[0] != prop_name:
+            if not _include(prop):
                 continue
             # TODO this is terrible, find a better way to do it. in general,
             # wouldn't it be easier to just store the normalized formula

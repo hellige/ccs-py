@@ -27,5 +27,6 @@ if click is not None:
         """CCS configuration query tool."""
 
     # Register subcommands — each module decorates @cli.command() on import.
+    import ccs.cli.dump   # noqa: F401
     import ccs.cli.query  # noqa: F401
     import ccs.cli.shell  # noqa: F401
