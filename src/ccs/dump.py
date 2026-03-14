@@ -52,12 +52,12 @@ def top_sort(dag):
         node_forms[node] = Clause([Key(name, values | to_add)])
         visit(node)
 
-    for l, matcher in dag.children.items():
+    for lit, matcher in dag.children.items():
         if matcher.wildcard:
-            visit_literal_node(matcher.wildcard, l)
+            visit_literal_node(matcher.wildcard, lit)
         for v, nodes in matcher.positive_values.items():
             for node in nodes:
-                visit_literal_node(node, l, v)
+                visit_literal_node(node, lit, v)
         # TODO handle negative values here
 
     return reversed(result), node_forms
